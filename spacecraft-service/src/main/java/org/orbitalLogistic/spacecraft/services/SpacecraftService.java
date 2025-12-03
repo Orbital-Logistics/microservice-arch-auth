@@ -1,5 +1,8 @@
 package org.orbitalLogistic.spacecraft.services;
 
+import lombok.extern.slf4j.Slf4j;
+import org.orbitalLogistic.spacecraft.clients.CargoServiceClient;
+import org.orbitalLogistic.spacecraft.clients.SpacecraftCargoUsageDTO;
 import org.orbitalLogistic.spacecraft.dto.common.PageResponseDTO;
 import org.orbitalLogistic.spacecraft.dto.request.SpacecraftRequestDTO;
 import org.orbitalLogistic.spacecraft.dto.response.SpacecraftResponseDTO;
@@ -20,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import java.math.BigDecimal;
 import java.util.List;
 
+@Slf4j
 @Service
 @Validated
 public class SpacecraftService {
@@ -27,15 +31,18 @@ public class SpacecraftService {
     private final SpacecraftRepository spacecraftRepository;
     private final SpacecraftMapper spacecraftMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final CargoServiceClient cargoServiceClient;
 
     private SpacecraftTypeService spacecraftTypeService;
 
     public SpacecraftService(SpacecraftRepository spacecraftRepository,
                             SpacecraftMapper spacecraftMapper,
-                            JdbcTemplate jdbcTemplate) {
+                            JdbcTemplate jdbcTemplate,
+                            CargoServiceClient cargoServiceClient) {
         this.spacecraftRepository = spacecraftRepository;
         this.spacecraftMapper = spacecraftMapper;
         this.jdbcTemplate = jdbcTemplate;
+        this.cargoServiceClient = cargoServiceClient;
     }
 
     @Autowired
@@ -203,11 +210,19 @@ public class SpacecraftService {
     private SpacecraftResponseDTO toResponseDTO(Spacecraft spacecraft) {
         SpacecraftType spacecraftType = spacecraftTypeService.getEntityById(spacecraft.getSpacecraftTypeId());
 
-        // В микросервисной архитектуре currentMassUsage и currentVolumeUsage будут 0
-        // так как эти данные находятся в cargo-service
-        // В будущем можно добавить вызов к cargo-service через REST или использовать события
         BigDecimal currentMassUsage = BigDecimal.ZERO;
         BigDecimal currentVolumeUsage = BigDecimal.ZERO;
+
+        try {
+            SpacecraftCargoUsageDTO cargoUsage = cargoServiceClient.getSpacecraftCargoUsage(spacecraft.getId());
+            if (cargoUsage != null) {
+                currentMassUsage = cargoUsage.currentMassUsage();
+                currentVolumeUsage = cargoUsage.currentVolumeUsage();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch cargo usage for spacecraft {}: {}. Using zero values.",
+                     spacecraft.getId(), e.getMessage());
+        }
 
         return spacecraftMapper.toResponseDTO(
             spacecraft,

@@ -17,6 +17,9 @@ public interface StorageUnitRepository extends CrudRepository<StorageUnit, Long>
     boolean existsByUnitCode(String unitCode);
     List<StorageUnit> findByStorageType(StorageTypeEnum storageType);
 
+    @Query("SELECT su.* FROM storage_unit su WHERE su.spacecraft_id = :spacecraftId")
+    List<StorageUnit> findBySpacecraftId(@Param("spacecraftId") Long spacecraftId);
+
     @Query("SELECT su.* FROM storage_unit su ORDER BY su.id LIMIT :limit OFFSET :offset")
     List<StorageUnit> findAllPaged(@Param("limit") int limit, @Param("offset") int offset);
 
