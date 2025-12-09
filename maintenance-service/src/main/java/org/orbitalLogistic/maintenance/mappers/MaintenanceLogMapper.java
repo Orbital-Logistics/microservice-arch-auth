@@ -24,4 +24,3 @@ public interface MaintenanceLogMapper {
     @Mapping(target = "status", expression = "java(request.status() != null ? request.status() : org.orbitalLogistic.maintenance.entities.enums.MaintenanceStatus.SCHEDULED)")
     MaintenanceLog toEntity(MaintenanceLogRequestDTO request);
 }
-

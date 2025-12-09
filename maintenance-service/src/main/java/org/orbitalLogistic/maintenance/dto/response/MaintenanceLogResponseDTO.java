@@ -21,4 +21,3 @@ public record MaintenanceLogResponseDTO(
     String description,
     BigDecimal cost
 ) {}
-

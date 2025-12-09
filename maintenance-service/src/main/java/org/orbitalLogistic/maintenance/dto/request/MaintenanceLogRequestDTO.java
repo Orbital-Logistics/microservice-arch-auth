@@ -30,4 +30,3 @@ public record MaintenanceLogRequestDTO(
     @DecimalMin(value = "0.0", message = "Cost must be non-negative")
     BigDecimal cost
 ) {}
-

@@ -3,5 +3,10 @@
 */build
 */.gradle
 
+gradle
+build
+
 token.sh
 config_server_vars.md
+
+*.iml

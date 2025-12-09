@@ -1,0 +1,11 @@
+rootProject.name = 'microservice-arch'
+
+include 'api-gateway'
+include 'cargo-service'
+include 'config-server'
+include 'eureka'
+include 'inventory-service'
+include 'maintenance-service'
+include 'mission-service'
+include 'spacecraft-service'
+include 'user-service'
