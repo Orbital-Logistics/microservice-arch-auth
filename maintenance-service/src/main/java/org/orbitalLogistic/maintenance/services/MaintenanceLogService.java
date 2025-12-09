@@ -2,11 +2,11 @@ package org.orbitalLogistic.maintenance.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.orbitalLogistic.maintenance.clients.SpacecraftDTO;
-import org.orbitalLogistic.maintenance.clients.SpacecraftServiceClient;
-import org.orbitalLogistic.maintenance.clients.UserDTO;
-import org.orbitalLogistic.maintenance.clients.UserServiceClient;
+import org.orbitalLogistic.maintenance.clients.spacecraft.SpacecraftServiceClient;
+import org.orbitalLogistic.maintenance.clients.user.UserServiceClient;
 import org.orbitalLogistic.maintenance.dto.common.PageResponseDTO;
+import org.orbitalLogistic.maintenance.dto.common.SpacecraftDTO;
+import org.orbitalLogistic.maintenance.dto.common.UserDTO;
 import org.orbitalLogistic.maintenance.dto.request.MaintenanceLogRequestDTO;
 import org.orbitalLogistic.maintenance.dto.response.MaintenanceLogResponseDTO;
 import org.orbitalLogistic.maintenance.entities.MaintenanceLog;
@@ -15,8 +15,10 @@ import org.orbitalLogistic.maintenance.exceptions.MaintenanceLogNotFoundExceptio
 import org.orbitalLogistic.maintenance.mappers.MaintenanceLogMapper;
 import org.orbitalLogistic.maintenance.repositories.MaintenanceLogRepository;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
+import java.beans.BeanInfo;
 
 @Slf4j
 @Service
@@ -28,126 +30,125 @@ public class MaintenanceLogService {
     private final UserServiceClient userServiceClient;
     private final SpacecraftServiceClient spacecraftServiceClient;
 
-    public PageResponseDTO<MaintenanceLogResponseDTO> getAllMaintenanceLogs(int page, int size) {
+    public Mono<PageResponseDTO<MaintenanceLogResponseDTO>> getAllMaintenanceLogs(int page, int size) {
         int offset = page * size;
-        List<MaintenanceLog> logs = maintenanceLogRepository.findAllPaginated(size, offset);
-        long total = maintenanceLogRepository.countAll();
 
-        List<MaintenanceLogResponseDTO> logDTOs = logs.stream()
-                .map(this::toResponseDTO)
-                .toList();
+        Mono<Long> totalMono = maintenanceLogRepository.countAll();
 
-        int totalPages = (int) Math.ceil((double) total / size);
-        return new PageResponseDTO<>(logDTOs, page, size, total, totalPages, page == 0, page >= totalPages - 1);
+        Flux<MaintenanceLogResponseDTO> itemsMono = maintenanceLogRepository
+                .findAllPaginated(offset, size)
+                .flatMap(this::toResponseDTO);
+
+        return totalMono.zipWith(itemsMono.collectList(), (total, items) -> {
+            int totalPages = (int) Math.ceil((double) total / size);
+
+            return new PageResponseDTO<>(
+                    items,
+                    page,
+                    size,
+                    total,
+                    totalPages,
+                    page == 0,
+                    page >= totalPages - 1
+            );
+        });
     }
 
-    public PageResponseDTO<MaintenanceLogResponseDTO> getSpacecraftMaintenanceHistory(Long spacecraftId, int page, int size) {
+    public Mono<PageResponseDTO<MaintenanceLogResponseDTO>> getSpacecraftMaintenanceHistory(Long spacecraftId, int page, int size) {
         int offset = page * size;
-        List<MaintenanceLog> logs = maintenanceLogRepository.findBySpacecraftIdPaginated(spacecraftId, size, offset);
-        long total = maintenanceLogRepository.countBySpacecraftId(spacecraftId);
 
-        List<MaintenanceLogResponseDTO> logDTOs = logs.stream()
-                .map(this::toResponseDTO)
-                .toList();
+        Mono<Long> totalMono = maintenanceLogRepository.countBySpacecraftId(spacecraftId);
 
-        int totalPages = (int) Math.ceil((double) total / size);
-        return new PageResponseDTO<>(logDTOs, page, size, total, totalPages, page == 0, page >= totalPages - 1);
+        Flux<MaintenanceLogResponseDTO> itemsMono = maintenanceLogRepository
+                .findBySpacecraftIdPaginated(spacecraftId, size, offset)
+                .flatMap(this::toResponseDTO);
+
+        return totalMono.zipWith(itemsMono.collectList(), (total, items) -> {
+            int totalPages = (int) Math.ceil((double) total / size);
+
+            return new PageResponseDTO<>(
+                    items,
+                    page,
+                    size,
+                    total,
+                    totalPages,
+                    page == 0,
+                    page >= totalPages - 1
+            );
+        });
     }
 
-    public MaintenanceLogResponseDTO createMaintenanceLog(MaintenanceLogRequestDTO request) {
-        try {
-            Boolean spacecraftExists = spacecraftServiceClient.spacecraftExists(request.spacecraftId());
-            if (spacecraftExists == null || !spacecraftExists) {
-                throw new InvalidOperationException("Spacecraft not found with id: " + request.spacecraftId());
-            }
-        } catch (Exception e) {
-            log.error("Failed to validate spacecraft: {}", e.getMessage());
-            throw new InvalidOperationException("Unable to validate spacecraft. Spacecraft service may be unavailable.");
-        }
+    public Mono<MaintenanceLogResponseDTO> createMaintenanceLog(MaintenanceLogRequestDTO request) {
+        Mono<Boolean> spacecraftExists = spacecraftServiceClient.spacecraftExists(request.spacecraftId())
+                .doOnError(e -> log.error("Failed to validate spacecraft {}: {}", request.spacecraftId(), e.getMessage()))
+                .onErrorMap(ex -> new InvalidOperationException("Unable to validate spacecraft. Spacecraft service may be unavailable."))
+                .flatMap(exists -> exists
+                    ? Mono.just(true)
+                    : Mono.error(new InvalidOperationException("Spacecraft not found with id: " + request.spacecraftId())));
 
-        try {
-            Boolean userExists = userServiceClient.userExists(request.performedByUserId());
-            if (userExists == null || !userExists) {
-                throw new InvalidOperationException("Performed by user not found with id: " + request.performedByUserId());
-            }
-        } catch (Exception e) {
-            log.error("Failed to validate performed by user: {}", e.getMessage());
-            throw new InvalidOperationException("Unable to validate performed by user. User service may be unavailable.");
-        }
+        Mono<Boolean> userExists = userServiceClient.userExists(request.performedByUserId())
+                .doOnError(ex -> log.error("Failed to validate performed by user: {}", ex.getMessage()))
+                .onErrorMap(ex -> new InvalidOperationException("Unable to validate performed by user. User service may be unavailable."))
+                .flatMap(exists -> exists
+                    ? Mono.just(true)
+                    : Mono.error(new InvalidOperationException("Performed by user not found with id: " + request.performedByUserId())));
 
-        if (request.supervisedByUserId() != null) {
-            try {
-                Boolean userExists = userServiceClient.userExists(request.supervisedByUserId());
-                if (userExists == null || !userExists) {
-                    throw new InvalidOperationException("Supervised by user not found with id: " + request.supervisedByUserId());
-                }
-            } catch (Exception e) {
-                log.error("Failed to validate supervised by user: {}", e.getMessage());
-                throw new InvalidOperationException("Unable to validate supervised by user. User service may be unavailable.");
-            }
-        }
+        Mono<Boolean> supervisedExists =
+                request.supervisedByUserId() == null
+                    ? Mono.just(true)
+                    : userServiceClient.userExists(request.supervisedByUserId())
+                        .flatMap(exists -> exists
+                            ? Mono.just(true)
+                            : Mono.error(new InvalidOperationException("Supervised by user not found with id: " + request.supervisedByUserId()))
+                        )
+                        .doOnError(ex -> log.error("Failed to validate supervised by user: {}", ex.getMessage()))
+                        .onErrorMap(ex -> new InvalidOperationException("Unable to validate supervised by user. User service may be unavailable."));
 
-        MaintenanceLog maintenanceLog = maintenanceLogMapper.toEntity(request);
-        MaintenanceLog saved = maintenanceLogRepository.save(maintenanceLog);
-        return toResponseDTO(saved);
+        return Mono.zip(spacecraftExists, userExists, supervisedExists)
+                .then(Mono.fromSupplier(() -> maintenanceLogMapper.toEntity(request)))
+                .flatMap(maintenanceLogRepository::save)
+                .flatMap(this::toResponseDTO);
+
     }
 
-    public MaintenanceLogResponseDTO updateMaintenanceStatus(Long id, MaintenanceLogRequestDTO request) {
-        MaintenanceLog maintenanceLog = maintenanceLogRepository.findById(id)
-                .orElseThrow(() -> new MaintenanceLogNotFoundException("Maintenance log not found with id: " + id));
-
-        if (request.status() != null) {
-            maintenanceLog.setStatus(request.status());
-        }
-        if (request.endTime() != null) {
-            maintenanceLog.setEndTime(request.endTime());
-        }
-        if (request.cost() != null) {
-            maintenanceLog.setCost(request.cost());
-        }
-        if (request.description() != null) {
-            maintenanceLog.setDescription(request.description());
-        }
-
-        MaintenanceLog updated = maintenanceLogRepository.save(maintenanceLog);
-        return toResponseDTO(updated);
+    public Mono<MaintenanceLogResponseDTO> updateMaintenanceStatus(Long id, MaintenanceLogRequestDTO request) {
+        return maintenanceLogRepository.findById(id)
+                .switchIfEmpty(Mono.error(new MaintenanceLogNotFoundException("Maintenance log not found with id: " + id)))
+                .flatMap(existing -> {
+                    if (request.status() != null) existing.setStatus(request.status());
+                    if (request.endTime() != null) existing.setEndTime(request.endTime());
+                    if (request.cost() != null) existing.setCost(request.cost());
+                    if (request.description() != null) existing.setDescription(request.description());
+                    return maintenanceLogRepository.save(existing);
+                })
+                .flatMap(this::toResponseDTO);
     }
 
-    private MaintenanceLogResponseDTO toResponseDTO(MaintenanceLog maintenanceLog) {
-        String spacecraftName = "Unknown";
-        String performedByUserName = "Unknown";
-        String supervisedByUserName = null;
+    private Mono<MaintenanceLogResponseDTO> toResponseDTO(MaintenanceLog log) {
+        Mono<String> spacecraftName = spacecraftServiceClient.getSpacecraftById(log.getSpacecraftId())
+                .map(SpacecraftDTO::name)
+                .switchIfEmpty(Mono.just("Unknown"))
+                .onErrorReturn("Unknown");
 
-        try {
-            SpacecraftDTO spacecraft = spacecraftServiceClient.getSpacecraftById(maintenanceLog.getSpacecraftId());
-            if (spacecraft != null) {
-                spacecraftName = spacecraft.name();
-            }
-        } catch (Exception e) {
-            log.warn("Failed to fetch spacecraft name: {}", e.getMessage());
-        }
+        Mono<String> performedByName = userServiceClient.getUserById(log.getPerformedByUserId())
+                .map(UserDTO::username)
+                .switchIfEmpty(Mono.just("Unknown"))
+                .onErrorReturn("Unknown");
 
-        try {
-            UserDTO user = userServiceClient.getUserById(maintenanceLog.getPerformedByUserId());
-            if (user != null) {
-                performedByUserName = user.username();
-            }
-        } catch (Exception e) {
-            log.warn("Failed to fetch performed by user name: {}", e.getMessage());
-        }
+        Mono<String> supervisedByName =
+                log.getSupervisedByUserId() == null
+                    ? Mono.just("")
+                    : userServiceClient.getUserById(log.getSupervisedByUserId())
+                    .map(UserDTO::username)
+                    .onErrorReturn("")
+                    .defaultIfEmpty("");
 
-        if (maintenanceLog.getSupervisedByUserId() != null) {
-            try {
-                UserDTO user = userServiceClient.getUserById(maintenanceLog.getSupervisedByUserId());
-                if (user != null) {
-                    supervisedByUserName = user.username();
-                }
-            } catch (Exception e) {
-                log.warn("Failed to fetch supervised by user name: {}", e.getMessage());
-            }
-        }
-
-        return maintenanceLogMapper.toResponseDTO(maintenanceLog, spacecraftName, performedByUserName, supervisedByUserName);
+        return Mono.zip(spacecraftName, performedByName, supervisedByName)
+                .map(tuple -> maintenanceLogMapper.toResponseDTO(
+                        log,
+                        tuple.getT1(),
+                        tuple.getT2(),
+                        tuple.getT3()
+                ));
     }
 }
-

@@ -18,4 +18,3 @@ CREATE INDEX idx_maintenance_performed_by ON maintenance_log(performed_by_user_i
 CREATE INDEX idx_maintenance_supervised_by ON maintenance_log(supervised_by_user_id);
 CREATE INDEX idx_maintenance_status ON maintenance_log(status);
 CREATE INDEX idx_maintenance_type ON maintenance_log(maintenance_type);
-

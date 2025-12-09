@@ -58,4 +58,3 @@ public class MaintenanceLog {
     @Column("cost")
     private BigDecimal cost;
 }
-
