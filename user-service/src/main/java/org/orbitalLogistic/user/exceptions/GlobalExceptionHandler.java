@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -21,7 +22,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleUserNotFoundException(UserNotFoundException ex) {
         log.warn("User not found: {}", ex.getMessage());
 
         ErrorResponse errorResponse = new ErrorResponse(
@@ -31,11 +32,11 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse));
     }
 
     @ExceptionHandler(InvalidOperationException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidOperationException(InvalidOperationException ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleInvalidOperationException(InvalidOperationException ex) {
         log.warn(ex.getMessage());
 
         ErrorResponse errorResponse = new ErrorResponse(
@@ -45,11 +46,11 @@ public class GlobalExceptionHandler {
                 ex.getMessage()
         );
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse));
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
         log.warn("User already exists: {}", ex.getMessage());
         
         ErrorResponse errorResponse = new ErrorResponse(
@@ -59,12 +60,12 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse));
     }
 
 
     @ExceptionHandler(DataNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleDataNotFoundException(DataNotFoundException ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleDataNotFoundException(DataNotFoundException ex) {
         log.warn("Data not found: {}", ex.getMessage());
         
         ErrorResponse errorResponse = new ErrorResponse(
@@ -74,11 +75,11 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse> handleValidationExceptions(
+    public Mono<ResponseEntity<ValidationErrorResponse>> handleValidationExceptions(
             MethodArgumentNotValidException ex) {
         log.warn("Validation error: {}", ex.getMessage());
         
@@ -97,11 +98,11 @@ public class GlobalExceptionHandler {
             errors
         );
         
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponseEnum> handleInvalidEnumValue(InvalidEnumValueException ex) {
+    public Mono<ResponseEntity<ErrorResponseEnum>> handleInvalidEnumValue(InvalidEnumValueException ex) {
         ErrorResponseEnum errorResponse = new ErrorResponseEnum(
             "INVALID_ENUM_VALUE",
             ex.getMessage(),
@@ -111,11 +112,11 @@ public class GlobalExceptionHandler {
                 "acceptedValues", ex.getAcceptedValues()
             )
         );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleAllUncaughtException(Exception ex) {
         log.error("Internal server error: {}", ex.getMessage(), ex);
         
         ErrorResponse errorResponse = new ErrorResponse(
@@ -125,12 +126,12 @@ public class GlobalExceptionHandler {
             "An unexpected error occurred"
         );
         
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
     }
 
     
     @ExceptionHandler(RoleNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleRoleNotFound(RoleNotFoundException ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleRoleNotFound(RoleNotFoundException ex) {
         log.warn("Role not found: {}", ex.getMessage());
         
         ErrorResponse errorResponse = new ErrorResponse(
@@ -140,18 +141,18 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse));
     }
 
     @ExceptionHandler(RoleAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleRoleAlreadyExists(RoleAlreadyExistsException ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleRoleAlreadyExists(RoleAlreadyExistsException ex) {
         ErrorResponse errorResponse = new ErrorResponse(
             LocalDateTime.now(),
             HttpStatus.NOT_FOUND.value(),
             "Already exists",
             ex.getMessage()
         );
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse));
     }
 
     public record ErrorResponseEnum(
@@ -176,7 +177,7 @@ public class GlobalExceptionHandler {
     ) {}
 
     @ExceptionHandler(UserAlreadyAssignedException.class)
-    public ResponseEntity<ErrorResponse> handleUserAlreadyAssignedException(UserAlreadyAssignedException ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleUserAlreadyAssignedException(UserAlreadyAssignedException ex) {
         ErrorResponse errorResponse = new ErrorResponse(
             LocalDateTime.now(),
             HttpStatus.CONFLICT.value(),
@@ -184,6 +185,6 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse));
     }
 }

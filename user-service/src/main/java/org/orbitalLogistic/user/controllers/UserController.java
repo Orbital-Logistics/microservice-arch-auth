@@ -11,6 +11,7 @@ import org.orbitalLogistic.user.dto.response.UserResponseDTO;
 import org.orbitalLogistic.user.services.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,47 +22,61 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponseDTO> registerUser(@Valid @RequestBody UserRegistrationRequestDTO request) {
-        UserResponseDTO user = userService.registerUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    public Mono<ResponseEntity<UserResponseDTO>> registerUser(@Valid @RequestBody UserRegistrationRequestDTO request) {
+        return userService.registerUser(request)
+                .map(response ->
+                        ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(response));
     }
 
     @GetMapping("/email/{email}")
-    public ResponseEntity<UserResponseDTO> getUserByEmail(@PathVariable String email) {
-        UserResponseDTO user = userService.findUserByEmail(email);
-        return ResponseEntity.ok(user);
+    public Mono<ResponseEntity<UserResponseDTO>> getUserByEmail(@PathVariable String email) {
+        return userService.findUserByEmail(email)
+                .map(response ->
+                        ResponseEntity
+                                .ok()
+                                .body(response));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Long id) {
-        UserResponseDTO user = userService.findUserById(id);
-        return ResponseEntity.ok(user);
+    public Mono<ResponseEntity<UserResponseDTO>> getUserById(@PathVariable Long id) {
+        return userService.findUserById(id)
+                .map(response ->
+                        ResponseEntity
+                                .ok()
+                                .body(response));
     }
 
     @GetMapping("/{id}/username")
-    public ResponseEntity<String> getUsernameById(@PathVariable Long id) {
-        UserResponseDTO user = userService.findUserById(id);
-        return ResponseEntity.ok(user.username());
+    public Mono<ResponseEntity<String>> getUsernameById(@PathVariable Long id) {
+        return userService.findUserById(id)
+                .map(response ->
+                        ResponseEntity
+                                .ok()
+                                .body(response.username()));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> updateUser(
+    public Mono<ResponseEntity<UserResponseDTO>> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserRequestDTO request
     ) {
-        UserResponseDTO user = userService.updateUser(id, request);
-        return ResponseEntity.ok(user);
+        return userService.updateUser(id, request)
+                .map(response ->
+                        ResponseEntity
+                                .ok()
+                                .body(response));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
+    public Mono<ResponseEntity<Void>> deleteUser(@PathVariable Long id) {
+        return userService.deleteUser(id).thenReturn(ResponseEntity.noContent().build());
     }
 
     @GetMapping("/{id}/exists")
-    public ResponseEntity<Boolean> userExists(@PathVariable Long id) {
-        boolean exists = userService.userExists(id);
-        return ResponseEntity.ok(exists);
+    public Mono<ResponseEntity<Boolean>> userExists(@PathVariable Long id) {
+        return userService.userExists(id)
+                .map(ResponseEntity::ok);
     }
 }

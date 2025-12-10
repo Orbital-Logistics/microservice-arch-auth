@@ -5,4 +5,3 @@ public class SpacecraftAlreadyExistsException extends RuntimeException {
         super(message);
     }
 }
-

@@ -15,6 +15,8 @@ import org.orbitalLogistic.user.mappers.UserMapper;
 import org.orbitalLogistic.user.repositories.UserRepository;
 import org.orbitalLogistic.user.repositories.UserRoleRepository;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -26,9 +28,18 @@ public class UserService {
     private final UserRoleRepository roleRepository;
     private final UserMapper userMapper;
 
-    public UserResponseDTO registerUser(UserRegistrationRequestDTO request) {
+    public Mono<UserResponseDTO> registerUser(UserRegistrationRequestDTO request) {
+        return Mono.fromCallable(() -> registerUserBlocking(request))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    protected UserResponseDTO registerUserBlocking(UserRegistrationRequestDTO request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new UserAlreadyExistsException("User with email already exists");
+        }
+
+        if (userRepository.existsByUsername(request.username())) {
+            throw new UserAlreadyExistsException("User with such username already exists");
         }
 
         User user = userMapper.toEntity(request);
@@ -41,7 +52,12 @@ public class UserService {
         return toResponseDTO(user);
     }
 
-    public PageResponseDTO<UserResponseDTO> getUsers(String email, String username, int page, int size) {
+    public Mono<PageResponseDTO<UserResponseDTO>> getUsers(String email, String username, int page, int size) {
+        return Mono.fromCallable(() -> getUsersBlocking(email, username, page, size))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    protected PageResponseDTO<UserResponseDTO> getUsersBlocking(String email, String username, int page, int size) {
         int offset = page * size;
         List<User> users = userRepository.findUsersWithFilters(email, username, size, offset);
         long total = userRepository.countUsersWithFilters(email, username);
@@ -52,19 +68,34 @@ public class UserService {
         return new PageResponseDTO<>(userDTOs, page, size, total, totalPages, page == 0, page >= totalPages - 1);
     }
 
-    public UserResponseDTO findUserById(Long id) {
+    public Mono<UserResponseDTO> findUserById(Long id) {
+        return Mono.fromCallable(() -> findUserByIdBlocking(id))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    protected UserResponseDTO findUserByIdBlocking(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
         return toResponseDTO(user);
     }
 
-    public UserResponseDTO findUserByEmail(String email) {
+    public Mono<UserResponseDTO> findUserByEmail(String email) {
+        return Mono.fromCallable(() -> findUserByEmailBlocking(email))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    protected UserResponseDTO findUserByEmailBlocking(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return toResponseDTO(user);
     }
 
-    public UserResponseDTO updateUser(Long id, UpdateUserRequestDTO request) {
+    public Mono<UserResponseDTO> updateUser(Long id, UpdateUserRequestDTO request) {
+        return Mono.fromCallable(() -> updateUserBlocking(id, request))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    protected UserResponseDTO updateUserBlocking(Long id, UpdateUserRequestDTO request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -74,24 +105,36 @@ public class UserService {
         return toResponseDTO(user);
     }
 
-    public void deleteUser(Long id) {
+    public Mono<Void> deleteUser(Long id) {
+        return Mono.fromRunnable(() -> deleteUserBlocking(id))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
+    }
+
+    protected void deleteUserBlocking(Long id) {
         if (!userRepository.existsById(id)) {
             throw new UserNotFoundException("User not found");
         }
         userRepository.deleteById(id);
     }
 
-    public User getEntityById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+    public Mono<User> getEntityById(Long id) {
+        return Mono.fromCallable(() ->
+                        userRepository.findById(id)
+                                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id))
+                )
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
-    public User getEntityByIdOrNull(Long id) {
-        return userRepository.findById(id).orElse(null);
+
+    public Mono<User> getEntityByIdOrNull(Long id) {
+        return Mono.fromCallable(() -> userRepository.findById(id).orElse(null))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
-    public boolean userExists(Long id) {
-        return userRepository.existsById(id);
+    public Mono<Boolean> userExists(Long id) {
+        return Mono.fromCallable(() -> userRepository.existsById(id))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     private UserResponseDTO toResponseDTO(User user) {

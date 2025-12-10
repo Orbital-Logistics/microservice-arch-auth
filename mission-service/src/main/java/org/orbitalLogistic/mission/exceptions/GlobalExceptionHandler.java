@@ -1,6 +1,7 @@
 package org.orbitalLogistic.mission.exceptions;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -26,6 +27,18 @@ public class GlobalExceptionHandler {
             ex.getMessage()
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(MissionSpacecraftExistsException.class)
+    public ResponseEntity<ErrorResponse> handleMissionSpacecraftExistsException(MissionSpacecraftExistsException ex) {
+        log.warn("Mission with this mission id and spacecraft id is already assigned : {}", ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
     @ExceptionHandler(MissionAlreadyExistsException.class)
