@@ -12,5 +12,7 @@ public interface SpacecraftMissionRepository extends CrudRepository<SpacecraftMi
     List<SpacecraftMission> findBySpacecraftId(Long spacecraftId);
 
     List<SpacecraftMission> findByMissionId(Long missionId);
+
+    boolean existsBySpacecraftIdAndMissionId(Long spacecraftId, Long missionId);
 }
 

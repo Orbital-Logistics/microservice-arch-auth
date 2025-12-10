@@ -5,4 +5,3 @@ public class SpacecraftNotFoundException extends RuntimeException {
         super(message);
     }
 }
-

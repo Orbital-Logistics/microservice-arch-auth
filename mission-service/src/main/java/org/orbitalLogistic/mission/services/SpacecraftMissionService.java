@@ -9,6 +9,7 @@ import org.orbitalLogistic.mission.dto.response.SpacecraftMissionResponseDTO;
 import org.orbitalLogistic.mission.entities.Mission;
 import org.orbitalLogistic.mission.entities.SpacecraftMission;
 import org.orbitalLogistic.mission.exceptions.MissionNotFoundException;
+import org.orbitalLogistic.mission.exceptions.MissionSpacecraftExistsException;
 import org.orbitalLogistic.mission.mappers.SpacecraftMissionMapper;
 import org.orbitalLogistic.mission.repositories.MissionRepository;
 import org.orbitalLogistic.mission.repositories.SpacecraftMissionRepository;
@@ -48,9 +49,12 @@ public class SpacecraftMissionService {
     }
 
     public SpacecraftMissionResponseDTO createSpacecraftMission(SpacecraftMissionRequestDTO request) {
-        // Проверка существования миссии
         if (!missionRepository.existsById(request.missionId())) {
             throw new MissionNotFoundException("Mission not found with id: " + request.missionId());
+        }
+
+        if (spacecraftMissionRepository.existsBySpacecraftIdAndMissionId(request.spacecraftId(), request.missionId())) {
+            throw new MissionSpacecraftExistsException("Such combination of mission id and spacecraft id is already exists!");
         }
 
         SpacecraftMission spacecraftMission = spacecraftMissionMapper.toEntity(request);
