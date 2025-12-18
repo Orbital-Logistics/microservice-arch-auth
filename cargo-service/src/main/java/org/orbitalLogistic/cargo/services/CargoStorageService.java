@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.orbitalLogistic.cargo.dto.common.PageResponseDTO;
 import org.orbitalLogistic.cargo.dto.request.CargoStorageRequestDTO;
 import org.orbitalLogistic.cargo.dto.response.CargoStorageResponseDTO;
-import org.orbitalLogistic.cargo.dto.response.SpacecraftCargoUsageDTO;
 import org.orbitalLogistic.cargo.entities.Cargo;
 import org.orbitalLogistic.cargo.entities.CargoStorage;
 import org.orbitalLogistic.cargo.entities.StorageUnit;
@@ -121,19 +120,6 @@ public class CargoStorageService {
         return total != null ? total : 0;
     }
 
-    public SpacecraftCargoUsageDTO getSpacecraftCargoUsage(Long spacecraftId) {
-        List<StorageUnit> storageUnits = storageUnitRepository.findBySpacecraftId(spacecraftId);
-
-        BigDecimal totalMassUsage = storageUnits.stream()
-                .map(StorageUnit::getCurrentMass)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalVolumeUsage = storageUnits.stream()
-                .map(StorageUnit::getCurrentVolume)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return new SpacecraftCargoUsageDTO(spacecraftId, totalMassUsage, totalVolumeUsage);
-    }
 
     private CargoStorageResponseDTO toResponseDTO(CargoStorage cargoStorage) {
         StorageUnit storageUnit = storageUnitRepository.findById(cargoStorage.getStorageUnitId()).orElse(null);

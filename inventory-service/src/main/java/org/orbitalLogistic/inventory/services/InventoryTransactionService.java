@@ -7,6 +7,7 @@ import org.orbitalLogistic.inventory.dto.common.PageResponseDTO;
 import org.orbitalLogistic.inventory.dto.request.InventoryTransactionRequestDTO;
 import org.orbitalLogistic.inventory.dto.response.InventoryTransactionResponseDTO;
 import org.orbitalLogistic.inventory.entities.InventoryTransaction;
+import org.orbitalLogistic.inventory.entities.enums.TransactionType;
 import org.orbitalLogistic.inventory.exceptions.InvalidOperationException;
 import org.orbitalLogistic.inventory.mappers.InventoryTransactionMapper;
 import org.orbitalLogistic.inventory.repositories.InventoryTransactionRepository;
@@ -52,31 +53,12 @@ public class InventoryTransactionService {
     }
 
     public InventoryTransactionResponseDTO createTransaction(InventoryTransactionRequestDTO request) {
-        // Валидация cargo через Feign Client
-        validateCargo(request.cargoId());
 
-        // Валидация performed by user через Feign Client
-        validateUser(request.performedByUserId(), "Performed by user");
+        validateBasicFields(request);
 
-        // Валидация from storage unit если указан
-        if (request.fromStorageUnitId() != null) {
-            validateStorageUnit(request.fromStorageUnitId(), "From storage unit");
-        }
+        validateTransactionRules(request);
 
-        // Валидация to storage unit если указан
-        if (request.toStorageUnitId() != null) {
-            validateStorageUnit(request.toStorageUnitId(), "To storage unit");
-        }
-
-        // Валидация from spacecraft если указан
-        if (request.fromSpacecraftId() != null) {
-            validateSpacecraft(request.fromSpacecraftId(), "From spacecraft");
-        }
-
-        // Валидация to spacecraft если указан
-        if (request.toSpacecraftId() != null) {
-            validateSpacecraft(request.toSpacecraftId(), "To spacecraft");
-        }
+        validateExternalEntities(request);
 
         InventoryTransaction transaction = inventoryTransactionMapper.toEntity(request);
 
@@ -84,8 +66,131 @@ public class InventoryTransactionService {
             transaction.setTransactionDate(java.time.LocalDateTime.now());
         }
 
-        InventoryTransaction saved = inventoryTransactionRepository.save(transaction);
-        return toResponseDTO(saved);
+        try {
+            InventoryTransaction saved = inventoryTransactionRepository.save(transaction);
+            return toResponseDTO(saved);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.error("Data integrity violation while creating transaction: {}", e.getMessage());
+            throw new InvalidOperationException(
+                    "Transaction violates business rules: " + extractConstraintMessage(e.getMessage())
+            );
+        } catch (Exception e) {
+            log.error("Unexpected error while creating transaction: {}", e.getMessage());
+            throw new InvalidOperationException("Failed to create transaction: " + e.getMessage());
+        }
+    }
+
+    private void validateBasicFields(InventoryTransactionRequestDTO request) {
+        if (request.cargoId() == null) {
+            throw new InvalidOperationException("Cargo ID is required");
+        }
+
+        if (request.performedByUserId() == null) {
+            throw new InvalidOperationException("Performed by user ID is required");
+        }
+
+        if (request.transactionType() == null) {
+            throw new InvalidOperationException("Transaction type is required");
+        }
+    }
+
+    private void validateExternalEntities(InventoryTransactionRequestDTO request) {
+        validateCargo(request.cargoId());
+
+        validateUser(request.performedByUserId());
+
+        if (request.fromStorageUnitId() != null) {
+            validateStorageUnit(request.fromStorageUnitId(), "From storage unit");
+        }
+
+        if (request.toStorageUnitId() != null) {
+            validateStorageUnit(request.toStorageUnitId(), "To storage unit");
+        }
+
+        if (request.fromSpacecraftId() != null) {
+            validateSpacecraft(request.fromSpacecraftId(), "From spacecraft");
+        }
+
+        if (request.toSpacecraftId() != null) {
+            validateSpacecraft(request.toSpacecraftId(), "To spacecraft");
+        }
+    }
+
+    private String extractConstraintMessage(String errorMessage) {
+        if (errorMessage.contains("chk_transaction_destination")) {
+            return "Invalid transaction destination configuration";
+        }
+        return "Invalid data configuration";
+    }
+
+    private void validateTransactionRules(InventoryTransactionRequestDTO request) {
+        TransactionType type = request.transactionType();
+
+        switch (type) {
+            case LOAD:
+                validateLoadTransaction(request);
+                break;
+            case UNLOAD:
+                validateUnloadTransaction(request);
+                break;
+            case TRANSFER:
+                validateTransferTransaction(request);
+                break;
+            case ADJUSTMENT:
+                validateAdjustmentTransaction(request);
+                break;
+            case CONSUMPTION:
+                validateConsumptionTransaction(request);
+            default:
+                throw new InvalidOperationException("Unsupported transaction type: " + type);
+        }
+    }
+
+    private void validateLoadTransaction(InventoryTransactionRequestDTO request) {
+        if (request.toSpacecraftId() == null && request.toStorageUnitId() == null) {
+            throw new InvalidOperationException(
+                    "For LOAD transaction, either toSpacecraftId or toStorageUnitId must be specified"
+            );
+        }
+    }
+
+    private void validateUnloadTransaction(InventoryTransactionRequestDTO request) {
+        if (request.fromSpacecraftId() == null && request.fromStorageUnitId() == null) {
+            throw new InvalidOperationException(
+                    "For UNLOAD transaction, either fromSpacecraftId or fromStorageUnitId must be specified"
+            );
+        }
+    }
+
+    private void validateTransferTransaction(InventoryTransactionRequestDTO request) {
+        if ((request.fromSpacecraftId() == null && request.fromStorageUnitId() == null) ||
+                (request.toSpacecraftId() == null && request.toStorageUnitId() == null)) {
+            throw new InvalidOperationException(
+                    "For TRANSFER transaction, both source (from) and destination (to) must be specified"
+            );
+        }
+    }
+
+    private void validateAdjustmentTransaction(InventoryTransactionRequestDTO request) {
+        boolean hasLocation = (request.fromSpacecraftId() != null || request.fromStorageUnitId() != null ||
+                request.toSpacecraftId() != null || request.toStorageUnitId() != null);
+
+        if (!hasLocation) {
+            throw new InvalidOperationException(
+                    "For ADJUSTMENT transaction, at least one location (spacecraft or storage unit) must be specified"
+            );
+        }
+    }
+
+    private void validateConsumptionTransaction(InventoryTransactionRequestDTO request) {
+        boolean hasLocation = (request.fromSpacecraftId() != null || request.fromStorageUnitId() != null ||
+                request.toSpacecraftId() != null || request.toStorageUnitId() != null);
+
+        if (!hasLocation) {
+            throw new InvalidOperationException(
+                    "For CONSUMPTION transaction, at least one location (spacecraft or storage unit) must be specified"
+            );
+        }
     }
 
     private void validateCargo(Long cargoId) {
@@ -100,15 +205,15 @@ public class InventoryTransactionService {
         }
     }
 
-    private void validateUser(Long userId, String fieldName) {
+    private void validateUser(Long userId) {
         try {
             Boolean userExists = userServiceClient.userExists(userId);
             if (userExists == null || !userExists) {
-                throw new InvalidOperationException(fieldName + " not found with id: " + userId);
+                throw new InvalidOperationException("Performed by user" + " not found with id: " + userId);
             }
         } catch (Exception e) {
             log.error("Failed to validate user: {}", e.getMessage());
-            throw new InvalidOperationException("Unable to validate " + fieldName.toLowerCase() + ". User service may be unavailable.");
+            throw new InvalidOperationException("Unable to validate " + "Performed by user".toLowerCase() + ". User service may be unavailable.");
         }
     }
 

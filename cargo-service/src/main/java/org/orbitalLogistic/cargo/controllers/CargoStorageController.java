@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.orbitalLogistic.cargo.dto.common.PageResponseDTO;
 import org.orbitalLogistic.cargo.dto.request.CargoStorageRequestDTO;
 import org.orbitalLogistic.cargo.dto.response.CargoStorageResponseDTO;
-import org.orbitalLogistic.cargo.dto.response.SpacecraftCargoUsageDTO;
 import org.orbitalLogistic.cargo.services.CargoStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,14 +50,6 @@ public class CargoStorageController {
             @RequestParam(defaultValue = "20") int size) {
 
         PageResponseDTO<CargoStorageResponseDTO> response = cargoStorageService.getStorageUnitCargo(id, page, size);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/spacecrafts/{spacecraftId}/cargo-usage")
-    public ResponseEntity<SpacecraftCargoUsageDTO> getSpacecraftCargoUsage(
-            @PathVariable Long spacecraftId) {
-
-        SpacecraftCargoUsageDTO response = cargoStorageService.getSpacecraftCargoUsage(spacecraftId);
         return ResponseEntity.ok(response);
     }
 }
