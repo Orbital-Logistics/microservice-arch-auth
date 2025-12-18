@@ -32,6 +32,8 @@ public class CargoCategoryService {
     }
 
     public CargoCategoryResponseDTO createCategory(CargoCategoryRequestDTO request) {
+        validateParentCategory(request);
+
         CargoCategory category = cargoCategoryMapper.toEntity(request);
         CargoCategory saved = cargoCategoryRepository.save(category);
         return toResponseDTO(saved);
@@ -58,6 +60,16 @@ public class CargoCategoryService {
             }
         }
         return cargoCategoryMapper.toResponseDTO(category, parentCategoryName, new ArrayList<>(), 0);
+    }
+
+    private void validateParentCategory(CargoCategoryRequestDTO request) {
+        Long parentCategoryId = request.parentCategoryId();
+        if (parentCategoryId != null) {
+            boolean parentExists = cargoCategoryRepository.existsById(parentCategoryId);
+            if (!parentExists) {
+                throw new CargoCategoryNotFoundException("Cargo category not found with id: " + parentCategoryId);
+            }
+        }
     }
 
     private CargoCategoryResponseDTO toTreeResponseDTO(CargoCategory category) {

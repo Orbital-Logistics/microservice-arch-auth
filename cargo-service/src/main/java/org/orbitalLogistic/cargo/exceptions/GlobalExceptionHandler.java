@@ -203,7 +203,7 @@ public class GlobalExceptionHandler {
         log.warn("Malformed JSON request or unreadable message: {}", ex.getMessage());
         String msg = ex.getMostSpecificCause().getMessage();
         ErrorResponse errorResponse = new ErrorResponse(
-                "Malformed JSON request: " + msg,
+                msg,
                 "Bad Request",
                 HttpStatus.BAD_REQUEST.value(),
                 LocalDateTime.now()
