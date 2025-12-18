@@ -1,0 +1,17 @@
+package org.orbitalLogistic.maintenance.clients.feign;
+
+import org.orbitalLogistic.maintenance.dto.common.SpacecraftDTO;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import reactor.core.publisher.Mono;
+
+@FeignClient(name = "spacecraft-service", path = "/api/spacecrafts")
+public interface SpacecraftServiceFeignClient {
+
+    @GetMapping("/{id}")
+    SpacecraftDTO getSpacecraftById(@PathVariable Long id);
+
+    @GetMapping("/{id}/exists")
+    Boolean spacecraftExists(@PathVariable Long id);
+}

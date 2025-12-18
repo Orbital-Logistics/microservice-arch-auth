@@ -2,8 +2,8 @@ package org.orbitalLogistic.maintenance.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.orbitalLogistic.maintenance.clients.spacecraft.SpacecraftServiceClient;
-import org.orbitalLogistic.maintenance.clients.user.UserServiceClient;
+import org.orbitalLogistic.maintenance.clients.SpacecraftServiceClient;
+import org.orbitalLogistic.maintenance.clients.UserServiceClient;
 import org.orbitalLogistic.maintenance.dto.common.PageResponseDTO;
 import org.orbitalLogistic.maintenance.dto.common.SpacecraftDTO;
 import org.orbitalLogistic.maintenance.dto.common.UserDTO;
@@ -22,7 +22,6 @@ import reactor.core.publisher.Mono;
 @Service
 @RequiredArgsConstructor
 public class MaintenanceLogService {
-
     private final MaintenanceLogRepository maintenanceLogRepository;
     private final MaintenanceLogMapper maintenanceLogMapper;
     private final UserServiceClient userServiceClient;
@@ -123,28 +122,37 @@ public class MaintenanceLogService {
                 .flatMap(this::toResponseDTO);
     }
 
-    private Mono<MaintenanceLogResponseDTO> toResponseDTO(MaintenanceLog log) {
-        Mono<String> spacecraftName = spacecraftServiceClient.getSpacecraftById(log.getSpacecraftId())
+    private Mono<MaintenanceLogResponseDTO> toResponseDTO(MaintenanceLog lg) {
+        Mono<String> spacecraftName = spacecraftServiceClient.getSpacecraftById(lg.getSpacecraftId())
                 .map(SpacecraftDTO::name)
                 .switchIfEmpty(Mono.just("Unknown"))
-                .onErrorReturn("Unknown");
+                .onErrorResume(ex -> {
+                    log.warn("Fallback: Unable to fetch spacecraft with id: {}", lg.getSpacecraftId());
+                    return Mono.just("Unknown");
+                });
 
-        Mono<String> performedByName = userServiceClient.getUserById(log.getPerformedByUserId())
+        Mono<String> performedByName = userServiceClient.getUserById(lg.getPerformedByUserId())
                 .map(UserDTO::username)
                 .switchIfEmpty(Mono.just("Unknown"))
-                .onErrorReturn("Unknown");
+                .onErrorResume(ex -> {
+                    log.warn("Fallback: Unable to fetch user with id: {}", lg.getPerformedByUserId());
+                    return Mono.just("Unknown");
+                });
 
         Mono<String> supervisedByName =
-                log.getSupervisedByUserId() == null
+                lg.getSupervisedByUserId() == null
                     ? Mono.just("")
-                    : userServiceClient.getUserById(log.getSupervisedByUserId())
+                    : userServiceClient.getUserById(lg.getSupervisedByUserId())
                     .map(UserDTO::username)
-                    .onErrorReturn("")
+                    .onErrorResume(ex -> {
+                        log.warn("Fallback: Unable to fetch user with id: {}", lg.getSupervisedByUserId());
+                        return Mono.just("Unknown");
+                    })
                     .defaultIfEmpty("");
 
         return Mono.zip(spacecraftName, performedByName, supervisedByName)
                 .map(tuple -> maintenanceLogMapper.toResponseDTO(
-                        log,
+                        lg,
                         tuple.getT1(),
                         tuple.getT2(),
                         tuple.getT3()

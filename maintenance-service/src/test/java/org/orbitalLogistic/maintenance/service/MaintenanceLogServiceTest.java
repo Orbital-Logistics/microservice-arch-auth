@@ -7,8 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.orbitalLogistic.maintenance.clients.spacecraft.SpacecraftServiceClient;
-import org.orbitalLogistic.maintenance.clients.user.UserServiceClient;
+import org.orbitalLogistic.maintenance.clients.feign.SpacecraftServiceFeignClient;
+import org.orbitalLogistic.maintenance.clients.feign.UserServiceFeignClient;
 import org.orbitalLogistic.maintenance.dto.common.SpacecraftDTO;
 import org.orbitalLogistic.maintenance.dto.common.UserDTO;
 import org.orbitalLogistic.maintenance.dto.request.MaintenanceLogRequestDTO;
@@ -42,10 +42,10 @@ class MaintenanceLogServiceTest {
     private MaintenanceLogMapper maintenanceLogMapper;
 
     @Mock
-    private UserServiceClient userServiceClient;
+    private UserServiceFeignClient userServiceClient;
 
     @Mock
-    private SpacecraftServiceClient spacecraftServiceClient;
+    private SpacecraftServiceFeignClient spacecraftServiceClient;
 
     @InjectMocks
     private MaintenanceLogService maintenanceLogService;
@@ -109,9 +109,9 @@ class MaintenanceLogServiceTest {
     void getAllMaintenanceLogs_Success() {
         when(maintenanceLogRepository.countAll()).thenReturn(Mono.just(1L));
         when(maintenanceLogRepository.findAllPaginated(0, 20)).thenReturn(Flux.just(testLog));
-        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.just(spacecraftDTO));
-        when(userServiceClient.getUserById(1L)).thenReturn(Mono.just(userDTO));
-        when(userServiceClient.getUserById(2L)).thenReturn(Mono.just(new UserDTO(2L, "Jane Smith", "jane@example.com")));
+        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(spacecraftDTO);
+        when(userServiceClient.getUserById(1L)).thenReturn(userDTO);
+        when(userServiceClient.getUserById(2L)).thenReturn(new UserDTO(2L, "Jane Smith", "jane@example.com"));
         when(maintenanceLogMapper.toResponseDTO(any(), anyString(), anyString(), anyString())).thenReturn(responseDTO);
 
         StepVerifier.create(maintenanceLogService.getAllMaintenanceLogs(0, 20))
@@ -132,9 +132,9 @@ class MaintenanceLogServiceTest {
     void getSpacecraftMaintenanceHistory_Success() {
         when(maintenanceLogRepository.countBySpacecraftId(1L)).thenReturn(Mono.just(1L));
         when(maintenanceLogRepository.findBySpacecraftIdPaginated(1L, 20, 0)).thenReturn(Flux.just(testLog));
-        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.just(spacecraftDTO));
-        when(userServiceClient.getUserById(1L)).thenReturn(Mono.just(userDTO));
-        when(userServiceClient.getUserById(2L)).thenReturn(Mono.just(new UserDTO(2L, "Jane Smith", "jane@example.com")));
+        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(spacecraftDTO);
+        when(userServiceClient.getUserById(1L)).thenReturn(userDTO);
+        when(userServiceClient.getUserById(2L)).thenReturn(new UserDTO(2L, "Jane Smith", "jane@example.com"));
         when(maintenanceLogMapper.toResponseDTO(any(), anyString(), anyString(), anyString())).thenReturn(responseDTO);
 
         StepVerifier.create(maintenanceLogService.getSpacecraftMaintenanceHistory(1L, 0, 20))
@@ -150,14 +150,14 @@ class MaintenanceLogServiceTest {
 
     @Test
     void createMaintenanceLog_Success() {
-        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(2L)).thenReturn(Mono.just(true));
+        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(2L)).thenReturn(true);
         when(maintenanceLogMapper.toEntity(any())).thenReturn(testLog);
         when(maintenanceLogRepository.save(any())).thenReturn(Mono.just(testLog));
-        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.just(spacecraftDTO));
-        when(userServiceClient.getUserById(1L)).thenReturn(Mono.just(userDTO));
-        when(userServiceClient.getUserById(2L)).thenReturn(Mono.just(new UserDTO(2L, "Jane Smith", "jane@example.com")));
+        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(spacecraftDTO);
+        when(userServiceClient.getUserById(1L)).thenReturn(userDTO);
+        when(userServiceClient.getUserById(2L)).thenReturn(new UserDTO(2L, "Jane Smith", "jane@example.com"));
         when(maintenanceLogMapper.toResponseDTO(any(), anyString(), anyString(), anyString())).thenReturn(responseDTO);
 
         StepVerifier.create(maintenanceLogService.createMaintenanceLog(requestDTO))
@@ -177,8 +177,8 @@ class MaintenanceLogServiceTest {
 
     @Test
     void createMaintenanceLog_SpacecraftNotFound() {
-        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(Mono.just(false));
-        when(userServiceClient.userExists(anyLong())).thenReturn(Mono.just(true));
+        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(false);
+        when(userServiceClient.userExists(anyLong())).thenReturn(true);
 
         StepVerifier.create(maintenanceLogService.createMaintenanceLog(requestDTO))
                 .expectErrorMatches(throwable ->
@@ -192,9 +192,9 @@ class MaintenanceLogServiceTest {
 
     @Test
     void createMaintenanceLog_UserNotFound() {
-        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(1L)).thenReturn(Mono.just(false));
-        when(userServiceClient.userExists(2L)).thenReturn(Mono.just(true));
+        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(1L)).thenReturn(false);
+        when(userServiceClient.userExists(2L)).thenReturn(true);
 
         StepVerifier.create(maintenanceLogService.createMaintenanceLog(requestDTO))
                 .expectErrorMatches(throwable ->
@@ -209,9 +209,9 @@ class MaintenanceLogServiceTest {
 
     @Test
     void createMaintenanceLog_SupervisedUserNotFound() {
-        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(2L)).thenReturn(Mono.just(false));
+        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(2L)).thenReturn(false);
 
         StepVerifier.create(maintenanceLogService.createMaintenanceLog(requestDTO))
                 .expectErrorMatches(throwable ->
@@ -241,12 +241,12 @@ class MaintenanceLogServiceTest {
                 .status(MaintenanceStatus.SCHEDULED)
                 .build();
 
-        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(1L)).thenReturn(Mono.just(true));
+        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(1L)).thenReturn(true);
         when(maintenanceLogMapper.toEntity(any())).thenReturn(logWithoutSupervisor);
         when(maintenanceLogRepository.save(any())).thenReturn(Mono.just(logWithoutSupervisor));
-        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.just(spacecraftDTO));
-        when(userServiceClient.getUserById(1L)).thenReturn(Mono.just(userDTO));
+        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(spacecraftDTO);
+        when(userServiceClient.getUserById(1L)).thenReturn(userDTO);
         when(maintenanceLogMapper.toResponseDTO(any(), anyString(), anyString(), anyString())).thenReturn(responseDTO);
 
         StepVerifier.create(maintenanceLogService.createMaintenanceLog(requestWithoutSupervisor))
@@ -268,9 +268,9 @@ class MaintenanceLogServiceTest {
 
         when(maintenanceLogRepository.findById(1L)).thenReturn(Mono.just(testLog));
         when(maintenanceLogRepository.save(any())).thenReturn(Mono.just(testLog));
-        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.just(spacecraftDTO));
-        when(userServiceClient.getUserById(1L)).thenReturn(Mono.just(userDTO));
-        when(userServiceClient.getUserById(2L)).thenReturn(Mono.just(new UserDTO(2L, "Jane Smith", "jane@example.com")));
+        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(spacecraftDTO);
+        when(userServiceClient.getUserById(1L)).thenReturn(userDTO);
+        when(userServiceClient.getUserById(2L)).thenReturn(new UserDTO(2L, "Jane Smith", "jane@example.com"));
         when(maintenanceLogMapper.toResponseDTO(any(), anyString(), anyString(), anyString())).thenReturn(responseDTO);
 
         StepVerifier.create(maintenanceLogService.updateMaintenanceStatus(1L, updateRequest))
@@ -306,14 +306,14 @@ class MaintenanceLogServiceTest {
 
     @Test
     void toResponseDTO_SpacecraftServiceError() {
-        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.error(new RuntimeException("Service error")));
-        when(userServiceClient.getUserById(1L)).thenReturn(Mono.just(userDTO));
-        when(userServiceClient.getUserById(2L)).thenReturn(Mono.just(new UserDTO(2L, "Jane Smith", "jane@example.com")));
+        when(spacecraftServiceClient.getSpacecraftById(1L)).thenThrow(new RuntimeException("Service error"));
+        when(userServiceClient.getUserById(1L)).thenReturn(userDTO);
+        when(userServiceClient.getUserById(2L)).thenReturn(new UserDTO(2L, "Jane Smith", "jane@example.com"));
         when(maintenanceLogMapper.toResponseDTO(any(), eq("Unknown"), anyString(), anyString())).thenReturn(responseDTO);
 
-        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(2L)).thenReturn(Mono.just(true));
+        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(2L)).thenReturn(true);
         when(maintenanceLogMapper.toEntity(any())).thenReturn(testLog);
         when(maintenanceLogRepository.save(any())).thenReturn(Mono.just(testLog));
 
@@ -324,14 +324,14 @@ class MaintenanceLogServiceTest {
 
     @Test
     void toResponseDTO_UserServiceError() {
-        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.just(spacecraftDTO));
-        when(userServiceClient.getUserById(1L)).thenReturn(Mono.error(new RuntimeException("Service error")));
-        when(userServiceClient.getUserById(2L)).thenReturn(Mono.just(new UserDTO(2L, "Jane Smith", "jane@example.com")));
+        when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(spacecraftDTO);
+        when(userServiceClient.getUserById(1L)).thenThrow(new RuntimeException("Service error"));
+        when(userServiceClient.getUserById(2L)).thenReturn(new UserDTO(2L, "Jane Smith", "jane@example.com"));
         when(maintenanceLogMapper.toResponseDTO(any(), anyString(), eq("Unknown"), anyString())).thenReturn(responseDTO);
 
-        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(1L)).thenReturn(Mono.just(true));
-        when(userServiceClient.userExists(2L)).thenReturn(Mono.just(true));
+        when(spacecraftServiceClient.spacecraftExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(1L)).thenReturn(true);
+        when(userServiceClient.userExists(2L)).thenReturn(true);
         when(maintenanceLogMapper.toEntity(any())).thenReturn(testLog);
         when(maintenanceLogRepository.save(any())).thenReturn(Mono.just(testLog));
 

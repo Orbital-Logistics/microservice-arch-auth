@@ -3,8 +3,8 @@ package org.orbitalLogistic.maintenance.integration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.orbitalLogistic.maintenance.clients.spacecraft.SpacecraftServiceClient;
-import org.orbitalLogistic.maintenance.clients.user.UserServiceClient;
+import org.orbitalLogistic.maintenance.clients.feign.SpacecraftServiceFeignClient;
+import org.orbitalLogistic.maintenance.clients.feign.UserServiceFeignClient;
 import org.orbitalLogistic.maintenance.dto.common.SpacecraftDTO;
 import org.orbitalLogistic.maintenance.dto.common.UserDTO;
 import org.orbitalLogistic.maintenance.dto.request.MaintenanceLogRequestDTO;
@@ -68,23 +68,23 @@ class MaintenanceLogIntegrationTest {
     private MaintenanceLogRepository maintenanceLogRepository;
 
     @MockitoBean
-    private SpacecraftServiceClient spacecraftServiceClient;
+    private SpacecraftServiceFeignClient spacecraftServiceClient;
 
     @MockitoBean
-    private UserServiceClient userServiceClient;
+    private UserServiceFeignClient userServiceClient;
 
     @BeforeEach
     void setUp() {
         maintenanceLogRepository.deleteAll().block();
 
-        when(spacecraftServiceClient.spacecraftExists(anyLong())).thenReturn(Mono.just(true));
+        when(spacecraftServiceClient.spacecraftExists(anyLong())).thenReturn(true);
         when(spacecraftServiceClient.getSpacecraftById(anyLong()))
-                .thenReturn(Mono.just(new SpacecraftDTO(1L, "SC-001", "Star Carrier")));
-        when(userServiceClient.userExists(anyLong())).thenReturn(Mono.just(true));
+                .thenReturn(new SpacecraftDTO(1L, "SC-001", "Star Carrier"));
+        when(userServiceClient.userExists(anyLong())).thenReturn(true);
         when(userServiceClient.getUserById(1L))
-                .thenReturn(Mono.just(new UserDTO(1L, "John Doe", "john@example.com")));
+                .thenReturn(new UserDTO(1L, "John Doe", "john@example.com"));
         when(userServiceClient.getUserById(2L))
-                .thenReturn(Mono.just(new UserDTO(2L, "Jane Smith", "jane@example.com")));
+                .thenReturn(new UserDTO(2L, "Jane Smith", "jane@example.com"));
     }
 
     @Test
@@ -265,7 +265,7 @@ class MaintenanceLogIntegrationTest {
 
     @Test
     void createLog_InvalidSpacecraft() {
-        when(spacecraftServiceClient.spacecraftExists(999L)).thenReturn(Mono.just(false));
+        when(spacecraftServiceClient.spacecraftExists(999L)).thenReturn(false);
 
         MaintenanceLogRequestDTO request = new MaintenanceLogRequestDTO(
                 999L, MaintenanceType.ROUTINE, 1L, null,
@@ -284,7 +284,7 @@ class MaintenanceLogIntegrationTest {
 
     @Test
     void createLog_InvalidUser() {
-        when(userServiceClient.userExists(999L)).thenReturn(Mono.just(false));
+        when(userServiceClient.userExists(999L)).thenReturn(false);
 
         MaintenanceLogRequestDTO request = new MaintenanceLogRequestDTO(
                 1L, MaintenanceType.ROUTINE, 999L, null,
