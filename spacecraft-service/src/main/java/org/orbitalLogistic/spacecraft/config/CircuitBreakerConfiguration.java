@@ -21,36 +21,5 @@ public class CircuitBreakerConfiguration {
         
         return CircuitBreakerRegistry.of(defaultConfig);
     }
-    
-    // @Bean
-    // public CircuitBreaker userServiceCircuitBreaker(CircuitBreakerRegistry registry) {
-    //     // Специфичная конфигурация для userService
-    //     CircuitBreakerConfig userServiceConfig = CircuitBreakerConfig.custom()
-    //         .failureRateThreshold(30)  // более чувствительный для userService
-    //         .waitDurationInOpenState(Duration.ofSeconds(15))
-    //         .slidingWindowSize(3)
-    //         .minimumNumberOfCalls(1)
-    //         .build();
-        
-    //     // Регистрируем конфигурацию
-    //     registry.addConfiguration("userServiceConfig", userServiceConfig);
-        
-    //     // Создаем и возвращаем Circuit Breaker
-    //     return registry.circuitBreaker("userService", "userServiceConfig");
-    // }
-    
-    // @Bean
-    // public CircuitBreaker missionServiceCircuitBreaker(CircuitBreakerRegistry registry) {
-    //     CircuitBreakerConfig missionConfig = CircuitBreakerConfig.custom()
-    //         .failureRateThreshold(70)  // менее чувствительный для missionService
-    //         .waitDurationInOpenState(Duration.ofSeconds(120))  // 2 минуты
-    //         .slidingWindowSize(50)  // большее окно для статистики
-    //         .minimumNumberOfCalls(20)
-    //         .slowCallDurationThreshold(Duration.ofSeconds(5))  // для долгих операций
-    //         .slowCallRateThreshold(50)
-    //         .build();
-        
-    //     registry.addConfiguration("missionConfig", missionConfig);
-    //     return registry.circuitBreaker("missionService", "missionConfig");
-    // }
+
 }
