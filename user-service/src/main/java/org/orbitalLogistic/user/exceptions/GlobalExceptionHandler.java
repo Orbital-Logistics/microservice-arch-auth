@@ -197,21 +197,6 @@ public class GlobalExceptionHandler {
         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
     }
 
-    
-    @ExceptionHandler(RoleNotFoundException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleRoleNotFound(RoleNotFoundException ex) {
-        log.warn("Role not found: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.NOT_FOUND.value(),
-            "Not Found",
-            ex.getMessage()
-        );
-
-        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse));
-    }
-
     @ExceptionHandler(RoleAlreadyExistsException.class)
     public Mono<ResponseEntity<ErrorResponse>> handleRoleAlreadyExists(RoleAlreadyExistsException ex) {
         ErrorResponse errorResponse = new ErrorResponse(
@@ -243,16 +228,4 @@ public class GlobalExceptionHandler {
         String message,
         Map<String, String> details
     ) {}
-
-    @ExceptionHandler(UserAlreadyAssignedException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleUserAlreadyAssignedException(UserAlreadyAssignedException ex) {
-        ErrorResponse errorResponse = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.CONFLICT.value(),
-            "Conflict",
-            ex.getMessage()
-        );
-
-        return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse));
-    }
 }
