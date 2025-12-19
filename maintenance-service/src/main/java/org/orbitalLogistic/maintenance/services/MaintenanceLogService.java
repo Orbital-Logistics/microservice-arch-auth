@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.orbitalLogistic.maintenance.clients.SpacecraftServiceClient;
 import org.orbitalLogistic.maintenance.clients.UserServiceClient;
-import org.orbitalLogistic.maintenance.dto.common.PageResponseDTO;
 import org.orbitalLogistic.maintenance.dto.common.SpacecraftDTO;
 import org.orbitalLogistic.maintenance.dto.common.UserDTO;
 import org.orbitalLogistic.maintenance.dto.request.MaintenanceLogRequestDTO;
@@ -27,52 +26,28 @@ public class MaintenanceLogService {
     private final UserServiceClient userServiceClient;
     private final SpacecraftServiceClient spacecraftServiceClient;
 
-    public Mono<PageResponseDTO<MaintenanceLogResponseDTO>> getAllMaintenanceLogs(int page, int size) {
+    public Flux<MaintenanceLogResponseDTO> getAllMaintenanceLogs(int page, int size) {
         int offset = page * size;
 
-        Mono<Long> totalMono = maintenanceLogRepository.countAll();
-
-        Flux<MaintenanceLogResponseDTO> itemsMono = maintenanceLogRepository
+        return maintenanceLogRepository
                 .findAllPaginated(offset, size)
                 .flatMap(this::toResponseDTO);
-
-        return totalMono.zipWith(itemsMono.collectList(), (total, items) -> {
-            int totalPages = (int) Math.ceil((double) total / size);
-
-            return new PageResponseDTO<>(
-                    items,
-                    page,
-                    size,
-                    total,
-                    totalPages,
-                    page == 0,
-                    page >= totalPages - 1
-            );
-        });
     }
 
-    public Mono<PageResponseDTO<MaintenanceLogResponseDTO>> getSpacecraftMaintenanceHistory(Long spacecraftId, int page, int size) {
+    public Mono<Long> countAll() {
+        return maintenanceLogRepository.countAll();
+    }
+
+    public Flux<MaintenanceLogResponseDTO> getSpacecraftMaintenanceHistory(Long spacecraftId, int page, int size) {
         int offset = page * size;
 
-        Mono<Long> totalMono = maintenanceLogRepository.countBySpacecraftId(spacecraftId);
-
-        Flux<MaintenanceLogResponseDTO> itemsMono = maintenanceLogRepository
+        return maintenanceLogRepository
                 .findBySpacecraftIdPaginated(spacecraftId, size, offset)
                 .flatMap(this::toResponseDTO);
+    }
 
-        return totalMono.zipWith(itemsMono.collectList(), (total, items) -> {
-            int totalPages = (int) Math.ceil((double) total / size);
-
-            return new PageResponseDTO<>(
-                    items,
-                    page,
-                    size,
-                    total,
-                    totalPages,
-                    page == 0,
-                    page >= totalPages - 1
-            );
-        });
+    public Mono<Long> countBySpacecraftId(Long spacecraftId) {
+        return maintenanceLogRepository.countBySpacecraftId(spacecraftId);
     }
 
     public Mono<MaintenanceLogResponseDTO> createMaintenanceLog(MaintenanceLogRequestDTO request) {

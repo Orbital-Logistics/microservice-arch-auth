@@ -3,7 +3,6 @@ package org.orbitalLogistic.maintenance.controller;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.orbitalLogistic.maintenance.controllers.MaintenanceLogController;
-import org.orbitalLogistic.maintenance.dto.common.PageResponseDTO;
 import org.orbitalLogistic.maintenance.dto.request.MaintenanceLogRequestDTO;
 import org.orbitalLogistic.maintenance.dto.response.MaintenanceLogResponseDTO;
 import org.orbitalLogistic.maintenance.entities.enums.MaintenanceStatus;
@@ -17,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
@@ -40,7 +40,6 @@ class MaintenanceLogControllerTest {
 
     private MaintenanceLogResponseDTO responseDTO;
     private MaintenanceLogRequestDTO requestDTO;
-    private PageResponseDTO<MaintenanceLogResponseDTO> pageResponse;
 
     @BeforeEach
     void setUp() {
@@ -73,22 +72,13 @@ class MaintenanceLogControllerTest {
                 "Routine maintenance",
                 new BigDecimal("1500.00")
         );
-
-        pageResponse = new PageResponseDTO<>(
-                List.of(responseDTO),
-                0,
-                20,
-                1L,
-                1,
-                true,
-                true
-        );
     }
 
     @Test
     void getAllMaintenanceLogs_Success() {
         when(maintenanceLogService.getAllMaintenanceLogs(0, 20))
-                .thenReturn(Mono.just(pageResponse));
+                .thenReturn(Flux.just(responseDTO));
+        when(maintenanceLogService.countAll()).thenReturn(Mono.just(1L));
 
         webTestClient.get()
                 .uri("/maintenance-logs?page=0&size=20")
@@ -96,48 +86,42 @@ class MaintenanceLogControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().valueEquals("X-Total-Count", "1")
-                .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(1)
-                .jsonPath("$.content[0].id").isEqualTo(1)
-                .jsonPath("$.content[0].spacecraftName").isEqualTo("Star Carrier")
-                .jsonPath("$.totalElements").isEqualTo(1)
-                .jsonPath("$.totalPages").isEqualTo(1);
+                .expectBodyList(MaintenanceLogResponseDTO.class)
+                .hasSize(1)
+                .consumeWith(result -> {
+                    List<MaintenanceLogResponseDTO> body = result.getResponseBody();
+                    assert body != null;
+                    assert body.getFirst().id() == 1L;
+                    assert "Star Carrier".equals(body.getFirst().spacecraftName());
+                });
 
         verify(maintenanceLogService).getAllMaintenanceLogs(0, 20);
+        verify(maintenanceLogService).countAll();
     }
 
     @Test
     void getAllMaintenanceLogs_WithCustomPagination() {
-        PageResponseDTO<MaintenanceLogResponseDTO> customPage = new PageResponseDTO<>(
-                List.of(responseDTO),
-                1,
-                10,
-                20L,
-                2,
-                false,
-                true
-        );
-
         when(maintenanceLogService.getAllMaintenanceLogs(1, 10))
-                .thenReturn(Mono.just(customPage));
+                .thenReturn(Flux.just(responseDTO));
+        when(maintenanceLogService.countAll()).thenReturn(Mono.just(20L));
 
         webTestClient.get()
                 .uri("/maintenance-logs?page=1&size=10")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.currentPage").isEqualTo(1)
-                .jsonPath("$.pageSize").isEqualTo(10)
-                .jsonPath("$.totalElements").isEqualTo(20);
+                .expectHeader().valueEquals("X-Total-Count", "20")
+                .expectBodyList(MaintenanceLogResponseDTO.class)
+                .hasSize(1);
 
         verify(maintenanceLogService).getAllMaintenanceLogs(1, 10);
+        verify(maintenanceLogService).countAll();
     }
 
     @Test
     void getAllMaintenanceLogs_ExceedsMaxSize() {
         when(maintenanceLogService.getAllMaintenanceLogs(0, 50))
-                .thenReturn(Mono.just(pageResponse));
+                .thenReturn(Flux.just(responseDTO));
 
         webTestClient.get()
                 .uri("/maintenance-logs?page=0&size=100")
@@ -333,7 +317,8 @@ class MaintenanceLogControllerTest {
     @Test
     void getSpacecraftMaintenanceHistory_Success() {
         when(maintenanceLogService.getSpacecraftMaintenanceHistory(1L, 0, 20))
-                .thenReturn(Mono.just(pageResponse));
+                .thenReturn(Flux.just(responseDTO));
+        when(maintenanceLogService.countBySpacecraftId(1L)).thenReturn(Mono.just(1L));
 
         webTestClient.get()
                 .uri("/spacecrafts/1/maintenance?page=0&size=20")
@@ -341,39 +326,34 @@ class MaintenanceLogControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().valueEquals("X-Total-Count", "1")
-                .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(1)
-                .jsonPath("$.content[0].spacecraftId").isEqualTo(1)
-                .jsonPath("$.totalElements").isEqualTo(1);
+                .expectBodyList(MaintenanceLogResponseDTO.class)
+                .hasSize(1)
+                .consumeWith(result -> {
+                    List<MaintenanceLogResponseDTO> body = result.getResponseBody();
+                    assert body != null;
+                    assert body.getFirst().spacecraftId() == 1L;
+                });
 
         verify(maintenanceLogService).getSpacecraftMaintenanceHistory(1L, 0, 20);
+        verify(maintenanceLogService).countBySpacecraftId(1L);
     }
 
     @Test
     void getSpacecraftMaintenanceHistory_EmptyResult() {
-        PageResponseDTO<MaintenanceLogResponseDTO> emptyPage = new PageResponseDTO<>(
-                List.of(),
-                0,
-                20,
-                0L,
-                0,
-                true,
-                true
-        );
-
         when(maintenanceLogService.getSpacecraftMaintenanceHistory(999L, 0, 20))
-                .thenReturn(Mono.just(emptyPage));
+                .thenReturn(Flux.empty());
+        when(maintenanceLogService.countBySpacecraftId(999L)).thenReturn(Mono.just(0L));
 
         webTestClient.get()
                 .uri("/spacecrafts/999/maintenance?page=0&size=20")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(0)
-                .jsonPath("$.totalElements").isEqualTo(0);
+                .expectBodyList(MaintenanceLogResponseDTO.class)
+                .hasSize(0);
 
         verify(maintenanceLogService).getSpacecraftMaintenanceHistory(999L, 0, 20);
+        verify(maintenanceLogService).countBySpacecraftId(999L);
     }
 }
 

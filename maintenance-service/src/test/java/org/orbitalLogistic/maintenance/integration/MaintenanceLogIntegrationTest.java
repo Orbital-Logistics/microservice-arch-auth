@@ -26,7 +26,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -149,10 +148,10 @@ class MaintenanceLogIntegrationTest {
                 .uri("/maintenance-logs?page=0&size=20")
                 .exchange()
                 .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "1")
                 .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(1)
-                .jsonPath("$.content[0].id").isEqualTo(logId)
-                .jsonPath("$.content[0].status").isEqualTo("COMPLETED");
+                .jsonPath("$[0].id").isEqualTo(logId)
+                .jsonPath("$[0].status").isEqualTo("COMPLETED");
     }
 
     @Test
@@ -191,11 +190,10 @@ class MaintenanceLogIntegrationTest {
                 .uri("/spacecrafts/1/maintenance?page=0&size=20")
                 .exchange()
                 .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "2")
                 .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(2)
-                .jsonPath("$.totalElements").isEqualTo(2)
-                .jsonPath("$.content[0].spacecraftId").isEqualTo(1)
-                .jsonPath("$.content[1].spacecraftId").isEqualTo(1);
+                .jsonPath("$[0].spacecraftId").isEqualTo(1)
+                .jsonPath("$[1].spacecraftId").isEqualTo(1);
     }
 
     @Test
@@ -222,25 +220,17 @@ class MaintenanceLogIntegrationTest {
                 .uri("/maintenance-logs?page=0&size=3")
                 .exchange()
                 .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "5")
                 .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(3)
-                .jsonPath("$.totalElements").isEqualTo(5)
-                .jsonPath("$.totalPages").isEqualTo(2)
-                .jsonPath("$.currentPage").isEqualTo(0)
-                .jsonPath("$.pageSize").isEqualTo(3)
-                .jsonPath("$.first").isEqualTo(true)
-                .jsonPath("$.last").isEqualTo(false);
+                .jsonPath("$.length()").isEqualTo(3);
 
         webTestClient.get()
                 .uri("/maintenance-logs?page=1&size=3")
                 .exchange()
                 .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "5")
                 .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(2)
-                .jsonPath("$.totalElements").isEqualTo(5)
-                .jsonPath("$.currentPage").isEqualTo(1)
-                .jsonPath("$.first").isEqualTo(false)
-                .jsonPath("$.last").isEqualTo(true);
+                .jsonPath("$.length()").isEqualTo(2);
     }
 
     @Test
@@ -323,10 +313,9 @@ class MaintenanceLogIntegrationTest {
                 .uri("/maintenance-logs?page=0&size=20")
                 .exchange()
                 .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "0")
                 .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(0)
-                .jsonPath("$.totalElements").isEqualTo(0)
-                .jsonPath("$.totalPages").isEqualTo(0);
+                .jsonPath("$.length()").isEqualTo(0);
     }
 
     @Test
@@ -335,9 +324,8 @@ class MaintenanceLogIntegrationTest {
                 .uri("/spacecrafts/999/maintenance?page=0&size=20")
                 .exchange()
                 .expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "0")
                 .expectBody()
-                .jsonPath("$.content.length()").isEqualTo(0)
-                .jsonPath("$.totalElements").isEqualTo(0);
+                .jsonPath("$.length()").isEqualTo(0);
     }
 }
-
