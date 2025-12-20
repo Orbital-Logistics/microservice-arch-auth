@@ -1,4 +1,4 @@
-rootProject.name = 'microservice-arch'
+rootProject.name = 'microservice-arch-auth'
 
 include 'api-gateway'
 include 'cargo-service'
@@ -9,3 +9,4 @@ include 'maintenance-service'
 include 'mission-service'
 include 'spacecraft-service'
 include 'user-service'
+include 'auth-service'
