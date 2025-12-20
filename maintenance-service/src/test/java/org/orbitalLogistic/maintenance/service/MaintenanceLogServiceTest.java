@@ -107,7 +107,6 @@ class MaintenanceLogServiceTest {
 
     @Test
     void getAllMaintenanceLogs_Success() {
-        when(maintenanceLogRepository.countAll()).thenReturn(Mono.just(1L));
         when(maintenanceLogRepository.findAllPaginated(0, 20)).thenReturn(Flux.just(testLog));
         when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.just(spacecraftDTO));
         when(userServiceClient.getUserById(1L)).thenReturn(Mono.just(userDTO));
@@ -115,22 +114,14 @@ class MaintenanceLogServiceTest {
         when(maintenanceLogMapper.toResponseDTO(any(), anyString(), anyString(), anyString())).thenReturn(responseDTO);
 
         StepVerifier.create(maintenanceLogService.getAllMaintenanceLogs(0, 20))
-                .assertNext(page -> {
-                    assertEquals(1L, page.totalElements());
-                    assertEquals(1, page.totalPages());
-                    assertEquals(1, page.content().size());
-                    assertTrue(page.first());
-                    assertTrue(page.last());
-                })
+                .expectNextMatches(dto -> dto.id() == 1L && "Star Carrier".equals(dto.spacecraftName()))
                 .verifyComplete();
 
-        verify(maintenanceLogRepository).countAll();
         verify(maintenanceLogRepository).findAllPaginated(0, 20);
     }
 
     @Test
     void getSpacecraftMaintenanceHistory_Success() {
-        when(maintenanceLogRepository.countBySpacecraftId(1L)).thenReturn(Mono.just(1L));
         when(maintenanceLogRepository.findBySpacecraftIdPaginated(1L, 20, 0)).thenReturn(Flux.just(testLog));
         when(spacecraftServiceClient.getSpacecraftById(1L)).thenReturn(Mono.just(spacecraftDTO));
         when(userServiceClient.getUserById(1L)).thenReturn(Mono.just(userDTO));
@@ -138,13 +129,9 @@ class MaintenanceLogServiceTest {
         when(maintenanceLogMapper.toResponseDTO(any(), anyString(), anyString(), anyString())).thenReturn(responseDTO);
 
         StepVerifier.create(maintenanceLogService.getSpacecraftMaintenanceHistory(1L, 0, 20))
-                .assertNext(page -> {
-                    assertEquals(1L, page.totalElements());
-                    assertEquals(1, page.content().size());
-                })
+                .expectNextMatches(dto -> dto.spacecraftId() == 1L)
                 .verifyComplete();
 
-        verify(maintenanceLogRepository).countBySpacecraftId(1L);
         verify(maintenanceLogRepository).findBySpacecraftIdPaginated(1L, 20, 0);
     }
 
