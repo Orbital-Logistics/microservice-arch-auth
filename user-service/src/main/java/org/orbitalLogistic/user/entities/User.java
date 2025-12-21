@@ -1,37 +1,57 @@
 package org.orbitalLogistic.user.entities;
 
-import jakarta.validation.constraints.*;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
-@Table("users")
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Entity
+@Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class User implements UserDetails {
 
     @Id
+    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Email(message = "Email must be valid")
-    @Size(max = 255)
-    private String email;
+    @Column(name = "enabled")
+    private Boolean enabled;
 
-    @NotBlank
-    @Size(min = 2, max = 64, message = "Name must be between 2 and 64 characters")
-    @Pattern(regexp = "^[a-zA-Zа-яА-Я\\s]+$", message = "Name can only contain letters and spaces")
+    @Column(name = "username", nullable = false)
     private String username;
 
-    @NotNull
-    private Long roleId;
+    @Column(name = "password_hash", nullable = false)
+    private String password;
 
-    @NotBlank
-    @Size(min = 8, max = 255, message = "Password must be at least 8 characters")
-    private String passwordHash;
+    @Column(name = "email", nullable = false)
+    private String email;
+
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_role",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return roles.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                .collect(Collectors.toSet());
+    }
 }
