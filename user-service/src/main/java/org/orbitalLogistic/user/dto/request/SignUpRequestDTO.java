@@ -15,6 +15,7 @@ public class SignUpRequestDTO {
         @NotBlank(message = "Email is required")
         @Email(message = "Email must be valid")
         @Size(max = 30, message = "Email must not exceed 30 characters")
+        @Pattern(regexp = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", message = "Invalid email format")
         private String email;
 
         @NotBlank(message = "Username is required")

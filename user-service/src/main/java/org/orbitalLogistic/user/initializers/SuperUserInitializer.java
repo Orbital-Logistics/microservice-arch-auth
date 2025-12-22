@@ -1,13 +1,9 @@
 package org.orbitalLogistic.user.initializers;
 
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.orbitalLogistic.user.entities.Role;
 import org.orbitalLogistic.user.entities.User;
-import org.orbitalLogistic.user.enums.UserRole;
 import org.orbitalLogistic.user.exceptions.initialize.RootUserInitException;
-import org.orbitalLogistic.user.repositories.RoleRepository;
 import org.orbitalLogistic.user.services.RoleService;
 import org.orbitalLogistic.user.services.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,8 +13,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 import java.util.Set;
-
-import static org.orbitalLogistic.user.enums.UserRole.ADMIN;
 
 @Component
 @RequiredArgsConstructor

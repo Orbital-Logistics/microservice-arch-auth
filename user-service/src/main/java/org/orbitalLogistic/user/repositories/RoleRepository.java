@@ -5,6 +5,7 @@ import org.orbitalLogistic.user.entities.Role;
 import org.springframework.data.repository.CrudRepository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -12,6 +13,7 @@ import java.util.Set;
 public interface RoleRepository  extends CrudRepository<Role, Long> {
     Optional<Role> findById(Long id);
     Optional<Role> findByName(String name);
+    List<Role> findAll();
 
-    Set<Role> findByNameIn(Collection<String> names);
+    void deleteRoleByName(String name);
 }

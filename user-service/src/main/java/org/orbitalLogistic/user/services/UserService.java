@@ -1,25 +1,30 @@
 package org.orbitalLogistic.user.services;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
+import org.orbitalLogistic.user.entities.Role;
 import org.orbitalLogistic.user.entities.User;
-import org.orbitalLogistic.user.enums.UserRole;
 import org.orbitalLogistic.user.exceptions.auth.UsernameAlreadyExistsException;
-import org.orbitalLogistic.user.repositories.RoleRepository;
+import org.orbitalLogistic.user.exceptions.common.BadRequestException;
+import org.orbitalLogistic.user.exceptions.common.UnknownUsernameException;
 import org.orbitalLogistic.user.repositories.UserRepository;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
+    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
+    private final RoleService roleService;
 
     @Transactional(rollbackFor = Exception.class)
     public void create(User user) {
@@ -27,6 +32,62 @@ public class UserService {
             throw new UsernameAlreadyExistsException("");
         }
         userRepository.save(user);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public User updateUser(String username, @Nullable String password, @Nullable String email, @Nullable Set<String> roles) {
+
+        Optional<User> updatedUser = userRepository.findByUsername(username);
+
+        if (updatedUser.isEmpty()) {
+            throw new UnknownUsernameException(username);
+        }
+
+        if (password != null) {
+            if (!password.isEmpty()) {
+                updatedUser.get().setPassword(passwordEncoder.encode(password));
+            } else {
+                throw new BadRequestException("Password cannot be empty");
+            }
+        }
+
+        if (email != null) {
+            if (!email.isEmpty()) {
+                updatedUser.get().setEmail(email);
+            } else {
+                throw new BadRequestException("Email cannot be empty");
+            }
+        }
+
+        if (roles != null) {
+            if (!roles.isEmpty()) {
+                Set<Role> validatedRoles = roleService.validateRoles(roles);
+                updatedUser.get().getRoles().addAll(validatedRoles);
+            } else {
+                throw new BadRequestException("Roles cannot be empty");
+            }
+        }
+
+        return userRepository.save(updatedUser.get());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public User removeRoles(String username, Set<String> roles) {
+
+        Optional<User> updatedUser = userRepository.findByUsername(username);
+
+        if (updatedUser.isEmpty()) {
+            throw new UnknownUsernameException(username);
+        }
+
+        if (!roles.isEmpty()) {
+            Set<Role> validatedRoles = roleService.validateRoles(roles);
+            updatedUser.get().getRoles().removeAll(validatedRoles);
+        } else {
+            throw new BadRequestException("Roles cannot be empty");
+        }
+
+        return userRepository.save(updatedUser.get());
     }
 
 //    protected UserResponseDTO registerUser(SignUpRequestDTO request) {

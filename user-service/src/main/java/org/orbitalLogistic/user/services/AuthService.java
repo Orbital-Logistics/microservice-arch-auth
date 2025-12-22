@@ -4,7 +4,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.orbitalLogistic.user.entities.Role;
 import org.orbitalLogistic.user.entities.User;
-import org.orbitalLogistic.user.enums.UserRole;
 import org.orbitalLogistic.user.exceptions.auth.EmailAlreadyExistsException;
 import org.orbitalLogistic.user.exceptions.auth.UnknownRoleException;
 import org.orbitalLogistic.user.exceptions.auth.UsernameAlreadyExistsException;
@@ -16,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -28,7 +28,7 @@ public class AuthService {
     private final UserService usersService;
     private final JwtService jwtService;
 
-    private final RoleRepository roleRepository;
+    private final RoleService roleService;
 
     @Transactional
     public String signUp(String username, String password, String email, Set<String> roles) {
@@ -41,16 +41,15 @@ public class AuthService {
             throw new EmailAlreadyExistsException("");
         }
 
-        validateRoles(roles);
+        Set<Role> validatedRoles = roleService.validateRoles(roles);
 
         User user = User.builder()
                 .email(email)
                 .username(username)
                 .password(passwordEncoder.encode(password))
+                .roles(validatedRoles)
                 .enabled(true)
                 .build();
-
-        user.setRoles(loadRoles(roles));
 
         usersService.create(user);
 
@@ -73,24 +72,5 @@ public class AuthService {
                 .loadUserByUsername(username);
 
         return jwtService.generateToken(user);
-    }
-
-    private Set<Role> loadRoles(Set<String> rolesNames) {
-        return roleRepository.findByNameIn(rolesNames);
-    }
-
-    private void validateRoles(Set<String> roles) {
-        for (String role : roles) {
-            boolean valid = false;
-            for (UserRole r : UserRole.values()) {
-                if (r.toString().equals(role)) {
-                    valid = true;
-                    break;
-                }
-            }
-            if (!valid) {
-                throw new UnknownRoleException(role);
-            }
-        }
     }
 }

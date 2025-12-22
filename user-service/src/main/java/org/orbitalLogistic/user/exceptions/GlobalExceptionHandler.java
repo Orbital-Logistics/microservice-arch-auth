@@ -5,8 +5,13 @@ import org.orbitalLogistic.user.exceptions.auth.EmailAlreadyExistsException;
 import org.orbitalLogistic.user.exceptions.auth.UnknownRoleException;
 import org.orbitalLogistic.user.exceptions.auth.UsernameAlreadyExistsException;
 import org.orbitalLogistic.user.exceptions.auth.WrongCredentialsException;
+import org.orbitalLogistic.user.exceptions.common.BadRequestException;
 import org.orbitalLogistic.user.exceptions.common.DataNotFoundException;
 import org.orbitalLogistic.user.exceptions.common.InvalidOperationException;
+import org.orbitalLogistic.user.exceptions.common.UnknownUsernameException;
+import org.orbitalLogistic.user.exceptions.roles.RoleAlreadyExistsException;
+import org.orbitalLogistic.user.exceptions.roles.RoleDoesNotExistException;
+import org.orbitalLogistic.user.exceptions.update.EmptyUpdateRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -28,6 +33,20 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex) {
+        log.warn(ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad request",
+                ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(InvalidOperationException.class)
     public ResponseEntity<ErrorResponse> handleInvalidOperationException(InvalidOperationException ex) {
         log.warn(ex.getMessage());
@@ -40,6 +59,34 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(UnknownUsernameException.class)
+    public ResponseEntity<ErrorResponse> handleUnknownUsernameException(UnknownUsernameException ex) {
+        log.warn(ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Not found",
+                ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(EmptyUpdateRequestException.class)
+    public ResponseEntity<ErrorResponse> handleEmptyUpdateRequestException(EmptyUpdateRequestException ex) {
+        log.warn(ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Wrong update request",
+                ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(UsernameAlreadyExistsException.class)
@@ -68,6 +115,34 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(RoleAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleRoleAlreadyExistsException(RoleAlreadyExistsException ex) {
+        log.warn(ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Conflict, role already exists",
+                ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(RoleDoesNotExistException.class)
+    public ResponseEntity<ErrorResponse> handleRoleDoesNotExistException(RoleDoesNotExistException ex) {
+        log.warn(ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Conflict, role does not exist",
+                ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     @ExceptionHandler(UnknownRoleException.class)
