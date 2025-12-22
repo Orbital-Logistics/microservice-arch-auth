@@ -1,14 +1,14 @@
 package org.orbitalLogistic.user.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record RoleRequestDTO(
-    @NotBlank(message = "Role name is required")
-    @Size(max = 50, message = "Role name must not exceed 50 characters")
-    String name,
-    
-    String description
-) {}
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RoleRequestDTO {
+    @NotBlank(message = "Role field is required")
+    private String role;
+}
