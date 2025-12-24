@@ -20,14 +20,12 @@ public class CargoCategoryController {
     private final CargoCategoryService cargoCategoryService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<List<CargoCategoryResponseDTO>> getAllCategories() {
         List<CargoCategoryResponseDTO> response = cargoCategoryService.getAllCategories();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<CargoCategoryResponseDTO> getCategoryById(@PathVariable Long id) {
         CargoCategoryResponseDTO response = cargoCategoryService.getCategoryById(id);
         return ResponseEntity.ok(response);
@@ -41,7 +39,6 @@ public class CargoCategoryController {
     }
 
     @GetMapping("/tree")
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<List<CargoCategoryResponseDTO>> getCategoryTree() {
         List<CargoCategoryResponseDTO> response = cargoCategoryService.getCategoryTree();
         return ResponseEntity.ok(response);

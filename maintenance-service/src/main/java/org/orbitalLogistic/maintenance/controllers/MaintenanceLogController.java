@@ -24,7 +24,6 @@ public class MaintenanceLogController {
     private final MaintenanceLogService maintenanceLogService;
 
     @GetMapping("/maintenance-logs")
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public Mono<ResponseEntity<Flux<MaintenanceLogResponseDTO>>> getAllMaintenanceLogs(
             @RequestParam(defaultValue = "0")
             @Min(value = 0, message = "Page must be >= 0")
@@ -66,7 +65,6 @@ public class MaintenanceLogController {
     }
 
     @GetMapping("/spacecrafts/{id}/maintenance")
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public Mono<ResponseEntity<Flux<MaintenanceLogResponseDTO>>> getSpacecraftMaintenanceHistory(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0")

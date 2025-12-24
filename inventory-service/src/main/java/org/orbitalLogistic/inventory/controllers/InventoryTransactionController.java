@@ -8,6 +8,7 @@ import org.orbitalLogistic.inventory.dto.response.InventoryTransactionResponseDT
 import org.orbitalLogistic.inventory.services.InventoryTransactionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -47,6 +48,7 @@ public class InventoryTransactionController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LOGISTICS_OFFICER')")
     public ResponseEntity<InventoryTransactionResponseDTO> createTransaction(
             @Valid @RequestBody InventoryTransactionRequestDTO request) {
 

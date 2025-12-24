@@ -22,7 +22,6 @@ public class StorageUnitController {
     private final StorageUnitService storageUnitService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<PageResponseDTO<StorageUnitResponseDTO>> getAllStorageUnits(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -36,7 +35,6 @@ public class StorageUnitController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<StorageUnitResponseDTO> getStorageUnitById(@PathVariable Long id) {
         StorageUnitResponseDTO response = storageUnitService.getStorageUnitById(id);
         return ResponseEntity.ok(response);
@@ -60,7 +58,6 @@ public class StorageUnitController {
     }
 
     @GetMapping("/{id}/inventory")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LOGISTICS_OFFICER', 'MISSION_COMMANDER')")
     public ResponseEntity<PageResponseDTO<CargoStorageResponseDTO>> getStorageUnitInventory(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
@@ -75,7 +72,6 @@ public class StorageUnitController {
     }
 
     @GetMapping("/{id}/exists")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LOGISTICS_OFFICER', 'MISSION_COMMANDER')")
     public ResponseEntity<Boolean> storageUnitExists(@PathVariable Long id) {
         boolean exists = storageUnitService.storageUnitExists(id);
         return ResponseEntity.ok(exists);

@@ -19,7 +19,6 @@ public class CargoStorageController {
     private final CargoStorageService cargoStorageService;
 
     @GetMapping("/cargo-storage")
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<PageResponseDTO<CargoStorageResponseDTO>> getAllCargoStorage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -48,7 +47,6 @@ public class CargoStorageController {
     }
 
     @GetMapping("/storage-units/{id}/storage")
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<PageResponseDTO<CargoStorageResponseDTO>> getStorageUnitCargo(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,

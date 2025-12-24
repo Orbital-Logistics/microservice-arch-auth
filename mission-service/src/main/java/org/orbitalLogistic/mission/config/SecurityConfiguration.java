@@ -1,6 +1,7 @@
 package org.orbitalLogistic.mission.config;
 
 import lombok.RequiredArgsConstructor;
+
 import org.orbitalLogistic.mission.filter.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

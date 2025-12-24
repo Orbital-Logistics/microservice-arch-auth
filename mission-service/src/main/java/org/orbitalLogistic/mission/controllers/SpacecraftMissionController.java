@@ -20,21 +20,18 @@ public class SpacecraftMissionController {
     private final SpacecraftMissionService spacecraftMissionService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MISSION_COMMANDER')")
     public ResponseEntity<List<SpacecraftMissionResponseDTO>> getAllSpacecraftMissions() {
         List<SpacecraftMissionResponseDTO> response = spacecraftMissionService.getAllSpacecraftMissions();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/spacecraft/{spacecraftId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MISSION_COMMANDER')")
     public ResponseEntity<List<SpacecraftMissionResponseDTO>> getBySpacecraft(@PathVariable Long spacecraftId) {
         List<SpacecraftMissionResponseDTO> response = spacecraftMissionService.getBySpacecraft(spacecraftId);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/mission/{missionId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MISSION_COMMANDER')")
     public ResponseEntity<List<SpacecraftMissionResponseDTO>> getByMission(@PathVariable Long missionId) {
         List<SpacecraftMissionResponseDTO> response = spacecraftMissionService.getByMission(missionId);
         return ResponseEntity.ok(response);

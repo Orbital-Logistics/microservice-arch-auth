@@ -69,7 +69,7 @@ public class MissionService {
         if (missionRepository.existsByMissionCode(request.missionCode())) {
             throw new MissionAlreadyExistsException("Mission with code already exists: " + request.missionCode());
         }
-        // Проверяем результат!
+
         Boolean userExists = userServiceClient.userExists(request.commandingOfficerId());
         if (userExists == null || !userExists) {
             throw new UserServiceNotFound("Commanding officer not found with id: " + request.commandingOfficerId());

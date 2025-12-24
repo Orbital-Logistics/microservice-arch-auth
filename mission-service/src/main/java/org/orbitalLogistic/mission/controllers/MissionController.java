@@ -1,5 +1,6 @@
 package org.orbitalLogistic.mission.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -25,10 +26,10 @@ public class MissionController {
 
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<PageResponseDTO<MissionResponseDTO>> getAllMissions(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+        HttpServletRequest request) {
 
         if (size > 50) size = 50;
 
@@ -40,14 +41,12 @@ public class MissionController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasRole('ADMIN') or #request.username == authentication.name")
     public ResponseEntity<PageResponseDTO<MissionResponseDTO>> searchMissions(
             @RequestParam(required = false) String missionCode,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String missionType,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-
+            @RequestParam(defaultValue = "20") int size, HttpServletRequest request) {
         if (size > 50) size = 50;
 
         PageResponseDTO<MissionResponseDTO> response = missionService.searchMissions(missionCode, status, missionType, page, size);
@@ -58,15 +57,14 @@ public class MissionController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MISSION_COMMANDER')")
-    public ResponseEntity<MissionResponseDTO> getMissionById(@PathVariable Long id) {
+    public ResponseEntity<MissionResponseDTO> getMissionById(@PathVariable Long id, HttpServletRequest request) {
         MissionResponseDTO response = missionService.getMissionById(id);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'MISSION_COMMANDER')")
-    public ResponseEntity<MissionResponseDTO> createMission(@Valid @RequestBody MissionRequestDTO request) {
+    public ResponseEntity<MissionResponseDTO> createMission(@Valid @RequestBody MissionRequestDTO request, HttpServletRequest request_http) {
         MissionResponseDTO response = missionService.createMission(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -97,14 +95,12 @@ public class MissionController {
     }
 
     @GetMapping("/commander/{commanderId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MISSION_COMMANDER')")
     public ResponseEntity<List<MissionResponseDTO>> getMissionsByCommander(@PathVariable Long commanderId) {
         List<MissionResponseDTO> response = missionService.getMissionsByCommander(commanderId);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/spacecraft/{spacecraftId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MISSION_COMMANDER')")
     public ResponseEntity<List<MissionResponseDTO>> getMissionsBySpacecraft(@PathVariable Long spacecraftId) {
         List<MissionResponseDTO> response = missionService.getMissionsBySpacecraft(spacecraftId);
         return ResponseEntity.ok(response);
