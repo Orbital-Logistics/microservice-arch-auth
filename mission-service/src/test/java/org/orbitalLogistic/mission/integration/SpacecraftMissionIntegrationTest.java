@@ -6,13 +6,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.orbitalLogistic.mission.TestcontainersConfiguration;
-import org.orbitalLogistic.mission.dto.request.SpacecraftMissionRequestDTO;
-import org.orbitalLogistic.mission.entities.Mission;
-import org.orbitalLogistic.mission.entities.enums.MissionPriority;
-import org.orbitalLogistic.mission.entities.enums.MissionStatus;
-import org.orbitalLogistic.mission.entities.enums.MissionType;
-import org.orbitalLogistic.mission.repositories.MissionRepository;
-import org.orbitalLogistic.mission.repositories.SpacecraftMissionRepository;
+import org.orbitalLogistic.mission.clients.resilient.ResilientSpacecraftService;
+import org.orbitalLogistic.mission.infrastructure.adapters.in.rest.dto.request.SpacecraftMissionRequestDTO;
+import org.orbitalLogistic.mission.infrastructure.adapters.out.kafka.ReportPublisher;
+import org.orbitalLogistic.mission.domain.model.Mission;
+import org.orbitalLogistic.mission.domain.model.enums.MissionPriority;
+import org.orbitalLogistic.mission.domain.model.enums.MissionStatus;
+import org.orbitalLogistic.mission.domain.model.enums.MissionType;
+import org.orbitalLogistic.mission.application.ports.out.MissionRepository;
+import org.orbitalLogistic.mission.application.ports.out.SpacecraftMissionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,11 +23,14 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -35,7 +40,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Tag("integration-tests")
 @TestPropertySource(properties = {
-        "spring.cloud.config.enabled=false"
+        "spring.cloud.config.enabled=false",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
 })
 @WithMockUser(roles = "ADMIN")
 class SpacecraftMissionIntegrationTest {
@@ -52,6 +58,10 @@ class SpacecraftMissionIntegrationTest {
     @Autowired
     private MissionRepository missionRepository;
 
+    @MockitoBean
+    private ResilientSpacecraftService spacecraftServiceClient;
+    @MockitoBean
+    private ReportPublisher reportPublisher;
     private Mission testMission1;
     private Mission testMission2;
 
@@ -59,6 +69,8 @@ class SpacecraftMissionIntegrationTest {
     void setUp() {
         spacecraftMissionRepository.deleteAll();
         missionRepository.deleteAll();
+
+        when(spacecraftServiceClient.spacecraftExists(anyLong())).thenReturn(true);
 
         testMission1 = Mission.builder()
                 .missionCode("TEST-SM-001")

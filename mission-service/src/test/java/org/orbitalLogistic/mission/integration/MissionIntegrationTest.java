@@ -8,10 +8,11 @@ import org.junit.jupiter.api.Test;
 import org.orbitalLogistic.mission.TestcontainersConfiguration;
 import org.orbitalLogistic.mission.clients.resilient.ResilientSpacecraftService;
 import org.orbitalLogistic.mission.clients.resilient.ResilientUserService;
-import org.orbitalLogistic.mission.dto.request.MissionRequestDTO;
-import org.orbitalLogistic.mission.entities.enums.MissionPriority;
-import org.orbitalLogistic.mission.entities.enums.MissionType;
-import org.orbitalLogistic.mission.repositories.MissionRepository;
+import org.orbitalLogistic.mission.infrastructure.adapters.in.rest.dto.request.MissionRequestDTO;
+import org.orbitalLogistic.mission.infrastructure.adapters.out.kafka.ReportPublisher;
+import org.orbitalLogistic.mission.domain.model.enums.MissionPriority;
+import org.orbitalLogistic.mission.domain.model.enums.MissionType;
+import org.orbitalLogistic.mission.application.ports.out.MissionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,7 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Tag("integration-tests")
 @TestPropertySource(properties = {
-        "spring.cloud.config.enabled=false"
+        "spring.cloud.config.enabled=false",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
 })
 @WithMockUser(roles = "ADMIN")
 class MissionIntegrationTest {
@@ -56,6 +58,9 @@ class MissionIntegrationTest {
 
     @MockitoBean
     private ResilientSpacecraftService spacecraftServiceClient;
+
+    @MockitoBean
+    private ReportPublisher reportPublisher;
 
     @BeforeEach
     void setUp() {
